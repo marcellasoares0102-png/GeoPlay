@@ -1002,7 +1002,7 @@
             const inputName = normalizeString(document.getElementById('name-input').value);
             const inputCapital = normalizeString(document.getElementById('capital-input').value);
             
-            const realName = normalizeString(info.name);
+            const realName = normalizeString(info.name || id);
             const realCapital = normalizeString(info.capital);
             
             let nameCorrect = (inputName === realName);
