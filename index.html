@@ -272,7 +272,6 @@
             "08": { name: "Colorado", abbr: "CO", capital: "Denver", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/den.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/col.png' class='h-12 object-contain drop-shadow-md'>" },
             "09": { name: "Connecticut", abbr: "CT", capital: "Hartford", region: "Northeast" },
             "10": { name: "Delaware", abbr: "DE", capital: "Dover", region: "South" },
-            "11": { name: "District of Columbia", abbr: "DC", capital: "Washington", region: "South" },
             "12": { name: "Florida", abbr: "FL", capital: "Tallahassee", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/mia.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/tb.png' class='h-12 object-contain drop-shadow-md'>" },
             "13": { name: "Georgia", abbr: "GA", capital: "Atlanta", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/atl.png' class='h-12 object-contain drop-shadow-md'>" },
             "15": { name: "Hawaii", abbr: "HI", capital: "Honolulu", region: "West" },
@@ -314,8 +313,11 @@
             "53": { name: "Washington", abbr: "WA", capital: "Olympia", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/sea.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/sea.png' class='h-12 object-contain drop-shadow-md'>" },
             "54": { name: "West Virginia", abbr: "WV", capital: "Charleston", region: "South" },
             "55": { name: "Wisconsin", abbr: "WI", capital: "Madison", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/gb.png' class='h-12 object-contain drop-shadow-md'>" },
-            "56": { name: "Wyoming", abbr: "WY", capital: "Cheyenne", region: "West" },
-            "72": { name: "Puerto Rico", abbr: "PR", capital: "San Juan", region: "Territories"}
+            "56": { name: "Wyoming", abbr: "WY", capital: "Cheyenne", region: "West" }
+        };
+        
+        const usaAliases = {
+            "15": ["hawai"]
         };
 
         // Canada Data
@@ -335,6 +337,13 @@
             "Nunavut": { abbr: "NU", capital: "Iqaluit", region: "Northern" },
             "Yukon": { abbr: "YT", capital: "Whitehorse", region: "Northern" }
         };
+        
+        function getCanadaId(d) {
+            let name = d.properties.name;
+            if (name === "Newfoundland") return "Newfoundland and Labrador";
+            if (name === "Yukon Territory") return "Yukon";
+            return name;
+        }
 
         // Europe Data
         const euRegionColors = { "Northern": "#0ea5e9", "Southern": "#ef4444", "Western": "#2563eb", "Eastern": "#14b8a6" };
@@ -580,7 +589,7 @@
             if (currentRegion === 'usa') {
                 title = "United States";
                 activeDataMap = stateData;
-                activeAliases = {};
+                activeAliases = usaAliases;
                 totalFeatures = Object.keys(stateData).length;
                 legendHtml = Object.entries(usaRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
                 renderUSA();
@@ -680,10 +689,10 @@
                     .data(provinces)
                     .join("path")
                     .attr("class", "map-feature")
-                    .attr("data-id", d => d.properties.name === "Newfoundland" ? "Newfoundland and Labrador" : d.properties.name)
+                    .attr("data-id", d => getCanadaId(d))
                     .attr("d", path)
                     .attr("fill", d => {
-                        let name = d.properties.name === "Newfoundland" ? "Newfoundland and Labrador" : d.properties.name;
+                        let name = getCanadaId(d);
                         return provinceData[name] ? canadaRegionColors[provinceData[name].region] : "rgba(255,255,255,0.1)";
                     })
                     .call(attachInteractions);
@@ -692,13 +701,13 @@
                     .data(provinces)
                     .join("text")
                     .attr("class", d => {
-                        let name = d.properties.name === "Newfoundland" ? "Newfoundland and Labrador" : d.properties.name;
+                        let name = getCanadaId(d);
                         const abbr = provinceData[name]?.abbr || "";
                         return ["PE", "NS", "NB"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
                     })
                     .attr("transform", d => {
                         const centroid = path.centroid(d);
-                        let name = d.properties.name === "Newfoundland" ? "Newfoundland and Labrador" : d.properties.name;
+                        let name = getCanadaId(d);
                         const abbr = provinceData[name]?.abbr || "";
                         let x = centroid[0], y = centroid[1];
                         
@@ -714,9 +723,9 @@
                         return `translate(${x},${y})`;
                     })
                     .attr("dy", ".35em")
-                    .attr("data-id", d => d.properties.name === "Newfoundland" ? "Newfoundland and Labrador" : d.properties.name)
+                    .attr("data-id", d => getCanadaId(d))
                     .text(d => {
-                        let name = d.properties.name === "Newfoundland" ? "Newfoundland and Labrador" : d.properties.name;
+                        let name = getCanadaId(d);
                         return provinceData[name]?.abbr || "";
                     });
 
@@ -966,7 +975,8 @@
             
             const form = document.getElementById('quiz-form');
             form.reset();
-            feedbackMsg.classList.add('hidden');
+            const feedbackMsg = document.getElementById('feedback-message');
+            feedbackMsg.className = "text-sm font-semibold text-center hidden py-2 rounded-lg";
             
             formCard.classList.remove('hidden');
             // Small delay to allow block render before transition
@@ -993,6 +1003,29 @@
             return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
         }
 
+        // Levenshtein distance for typo detection
+        function levenshtein(a, b) {
+            if (a.length === 0) return b.length;
+            if (b.length === 0) return a.length;
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1, 
+                            matrix[i][j - 1] + 1,     
+                            matrix[i - 1][j] + 1      
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
         document.getElementById('quiz-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -1002,15 +1035,19 @@
             const inputName = normalizeString(document.getElementById('name-input').value);
             const inputCapital = normalizeString(document.getElementById('capital-input').value);
             
-            const realName = normalizeString(info.name || id);
-            const realCapital = normalizeString(info.capital);
+            const realNameStr = info.name || id;
+            const realName = normalizeString(realNameStr);
+            const realCapitalStr = info.capital;
+            const realCapital = normalizeString(realCapitalStr);
             
             let nameCorrect = (inputName === realName);
             if (!nameCorrect && activeAliases[id]) {
                 nameCorrect = activeAliases[id].some(alias => normalizeString(alias) === inputName);
             }
-            
             const capitalCorrect = (inputCapital === realCapital);
+
+            const feedbackMsg = document.getElementById('feedback-message');
+            feedbackMsg.className = "text-sm font-semibold text-center py-2 rounded-lg"; // reset classes
 
             if (nameCorrect && capitalCorrect) {
                 // Correct
@@ -1023,15 +1060,50 @@
                     d3.selectAll(`.map-feature[data-id="${id}"]`).classed("answered", true);
                     d3.selectAll(`text[data-id="${id}"]`).classed("answered-label", true);
                 }
+                feedbackMsg.classList.add('hidden');
                 closeForm();
             } else {
-                // Wrong
                 feedbackMsg.classList.remove('hidden');
-                // Shake animation for error
-                formCard.classList.add('translate-x-1');
-                setTimeout(() => formCard.classList.remove('translate-x-1'), 100);
-                setTimeout(() => formCard.classList.add('-translate-x-1'), 200);
-                setTimeout(() => formCard.classList.remove('-translate-x-1'), 300);
+                
+                // Check Typos
+                const nameDist = levenshtein(inputName, realName);
+                const capDist = levenshtein(inputCapital, realCapital);
+                
+                const nameTypo = !nameCorrect && (nameDist <= 2 && realName.length > 3);
+                const capTypo = !capitalCorrect && (capDist <= 2 && realCapital.length > 3);
+                
+                let isTypo = false;
+                let msg = "Try again!";
+                
+                if (nameTypo && capTypo) {
+                    msg = `Almost! It's ${realNameStr} and ${realCapitalStr}.`;
+                    isTypo = true;
+                } else if (nameTypo && capitalCorrect) {
+                    msg = `Capital correct! Almost on name, it's ${realNameStr}.`;
+                    isTypo = true;
+                } else if (nameCorrect && capTypo) {
+                    msg = `Name correct! Almost on capital, it's ${realCapitalStr}.`;
+                    isTypo = true;
+                } else if (nameTypo) {
+                    msg = `Almost on name! It's ${realNameStr}. Try again for capital.`;
+                    isTypo = true;
+                } else if (capTypo) {
+                    msg = `Almost on capital! It's ${realCapitalStr}. Try again for name.`;
+                    isTypo = true;
+                }
+
+                if (isTypo) {
+                    feedbackMsg.textContent = msg;
+                    feedbackMsg.classList.add("bg-yellow-500/20", "text-yellow-300", "border", "border-yellow-500/30");
+                } else {
+                    feedbackMsg.textContent = "Try again!";
+                    feedbackMsg.classList.add("bg-red-500/20", "text-red-300", "border", "border-red-500/30");
+                    // Shake animation for complete error
+                    formCard.classList.add('translate-x-1');
+                    setTimeout(() => formCard.classList.remove('translate-x-1'), 100);
+                    setTimeout(() => formCard.classList.add('-translate-x-1'), 200);
+                    setTimeout(() => formCard.classList.remove('-translate-x-1'), 300);
+                }
             }
         });
 
