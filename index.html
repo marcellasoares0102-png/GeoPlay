@@ -437,11 +437,21 @@
             "320": { name: "Guatemala", abbr: "GT", capital: "Guatemala City", region: "Central America" },
             "340": { name: "Honduras", abbr: "HN", capital: "Tegucigalpa", region: "Central America" },
             "558": { name: "Nicaragua", abbr: "NI", capital: "Managua", region: "Central America" },
-            "591": { name: "Panama", abbr: "PA", capital: "Panama City", region: "Central America" }
+            "591": { name: "Panama", abbr: "PA", capital: "Panama City", region: "Central America" },
+            "484": { name: "Mexico", abbr: "MX", capital: "Mexico City", region: "Central America" },
+            "192": { name: "Cuba", abbr: "CU", capital: "Havana", region: "Central America" },
+            "332": { name: "Haiti", abbr: "HT", capital: "Port-au-Prince", region: "Central America" },
+            "214": { name: "Dominican Republic", abbr: "DO", capital: "Santo Domingo", region: "Central America" },
+            "388": { name: "Jamaica", abbr: "JM", capital: "Kingston", region: "Central America" },
+            "044": { name: "Bahamas", abbr: "BS", capital: "Nassau", region: "Central America" }
         };
 
         const latamAliases = {
-            "320": ["guatemala"]
+            "320": ["guatemala"],
+            "214": ["republica dominicana", "dominican republic"],
+            "484": ["mexico"],
+            "591": ["panama"],
+            "170": ["colombia"]
         };
 
         // IDs for the globe interaction
@@ -881,7 +891,7 @@
             const width = 975, height = 650;
             const svg = createMapSvg(width, height);
             
-            const projection = d3.geoMercator().center([-70, -20]).scale(350).translate([width / 2, height / 2]);
+            const projection = d3.geoMercator().center([-75, -15]).scale(280).translate([width / 2, height / 2]);
             const path = d3.geoPath().projection(projection);
 
             d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json").then(world => {
@@ -921,7 +931,7 @@
                     .join("text")
                     .attr("class", d => {
                         const abbr = latamData[String(d.id).padStart(3, '0')].abbr;
-                        return ["BZ", "CR", "SV", "GT", "HN", "NI", "PA", "GY", "SR"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
+                        return ["BZ", "CR", "SV", "GT", "HN", "NI", "PA", "GY", "SR", "HT", "DO", "JM", "BS"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
                     })
                     .attr("transform", d => {
                         const id = String(d.id).padStart(3, '0');
