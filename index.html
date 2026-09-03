@@ -416,12 +416,40 @@
             "MC": [7.42, 43.73], "LI": [9.52, 47.14], "AD": [1.52, 42.50], "LU": [6.13, 49.81]
         };
 
+        // Latin America Data
+        const latamRegionColors = { "South America": "#14b8a6", "Central America": "#f59e0b" };
+        const latamData = {
+            "032": { name: "Argentina", abbr: "AR", capital: "Buenos Aires", region: "South America" },
+            "068": { name: "Bolivia", abbr: "BO", capital: "Sucre", region: "South America" },
+            "076": { name: "Brazil", abbr: "BR", capital: "Brasilia", region: "South America" },
+            "152": { name: "Chile", abbr: "CL", capital: "Santiago", region: "South America" },
+            "170": { name: "Colombia", abbr: "CO", capital: "Bogota", region: "South America" },
+            "218": { name: "Ecuador", abbr: "EC", capital: "Quito", region: "South America" },
+            "328": { name: "Guyana", abbr: "GY", capital: "Georgetown", region: "South America" },
+            "600": { name: "Paraguay", abbr: "PY", capital: "Asuncion", region: "South America" },
+            "604": { name: "Peru", abbr: "PE", capital: "Lima", region: "South America" },
+            "740": { name: "Suriname", abbr: "SR", capital: "Paramaribo", region: "South America" },
+            "858": { name: "Uruguay", abbr: "UY", capital: "Montevideo", region: "South America" },
+            "862": { name: "Venezuela", abbr: "VE", capital: "Caracas", region: "South America" },
+            "084": { name: "Belize", abbr: "BZ", capital: "Belmopan", region: "Central America" },
+            "188": { name: "Costa Rica", abbr: "CR", capital: "San Jose", region: "Central America" },
+            "222": { name: "El Salvador", abbr: "SV", capital: "San Salvador", region: "Central America" },
+            "320": { name: "Guatemala", abbr: "GT", capital: "Guatemala City", region: "Central America" },
+            "340": { name: "Honduras", abbr: "HN", capital: "Tegucigalpa", region: "Central America" },
+            "558": { name: "Nicaragua", abbr: "NI", capital: "Managua", region: "Central America" },
+            "591": { name: "Panama", abbr: "PA", capital: "Panama City", region: "Central America" }
+        };
+
+        const latamAliases = {
+            "320": ["guatemala"]
+        };
+
         // IDs for the globe interaction
         const usaGlobeId = "840";
         const canadaGlobeId = "124";
-        // Get all Europe ISO IDs (filtering out strings like ENG, SCT for the globe layer)
         const europeGlobeIds = Object.keys(countryData).filter(k => !isNaN(k));
         europeGlobeIds.push("826"); // UK unified for the globe highlight
+        const latamGlobeIds = Object.keys(latamData);
 
         let currentRegion = null;
         let activeDataMap = null;
@@ -501,6 +529,8 @@
                             return "globe-feature globe-highlight";
                         } else if (europeGlobeIds.includes(id)) {
                             return "globe-feature globe-highlight europe-group";
+                        } else if (latamGlobeIds.includes(id)) {
+                            return "globe-feature globe-highlight latam-group";
                         }
                         return "globe-feature";
                     })
@@ -509,11 +539,14 @@
                         if (id === usaGlobeId) startQuiz('usa');
                         else if (id === canadaGlobeId) startQuiz('canada');
                         else if (europeGlobeIds.includes(id)) startQuiz('europe');
+                        else if (latamGlobeIds.includes(id)) startQuiz('latam');
                     })
                     .on("mouseover", function(event, d) {
                         const id = String(d.id).padStart(3, '0');
                         if (europeGlobeIds.includes(id)) {
                             d3.selectAll(".europe-group").classed("hovered", true);
+                        } else if (latamGlobeIds.includes(id)) {
+                            d3.selectAll(".latam-group").classed("hovered", true);
                         } else if (id === usaGlobeId || id === canadaGlobeId) {
                             d3.select(this).classed("hovered", true);
                         }
@@ -522,6 +555,8 @@
                         const id = String(d.id).padStart(3, '0');
                         if (europeGlobeIds.includes(id)) {
                             d3.selectAll(".europe-group").classed("hovered", false);
+                        } else if (latamGlobeIds.includes(id)) {
+                            d3.selectAll(".latam-group").classed("hovered", false);
                         } else if (id === usaGlobeId || id === canadaGlobeId) {
                             d3.select(this).classed("hovered", false);
                         }
@@ -607,6 +642,13 @@
                 totalFeatures = Object.keys(countryData).length;
                 legendHtml = Object.entries(euRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
                 renderEurope();
+            } else if (currentRegion === 'latam') {
+                title = "South & Central America";
+                activeDataMap = latamData;
+                activeAliases = latamAliases;
+                totalFeatures = Object.keys(latamData).length;
+                legendHtml = Object.entries(latamRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
+                renderLatam();
             }
 
             document.getElementById('quiz-title').textContent = title;
@@ -835,6 +877,76 @@
             });
         }
 
+        function renderLatam() {
+            const width = 975, height = 650;
+            const svg = createMapSvg(width, height);
+            
+            const projection = d3.geoMercator().center([-70, -20]).scale(350).translate([width / 2, height / 2]);
+            const path = d3.geoPath().projection(projection);
+
+            d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json").then(world => {
+                let countries = topojson.feature(world, world.objects.countries).features;
+
+                // Draw Features
+                svg.append("g").selectAll("path")
+                    .data(countries)
+                    .join("path")
+                    .attr("data-id", d => String(d.id).padStart(3, '0'))
+                    .attr("class", d => {
+                        const id = String(d.id).padStart(3, '0');
+                        return latamData[id] ? "map-feature" : "non-interactive";
+                    })
+                    .attr("d", path)
+                    .attr("fill", d => {
+                        const id = String(d.id).padStart(3, '0');
+                        return latamData[id] ? latamRegionColors[latamData[id].region] : "rgba(255,255,255,0.05)";
+                    })
+                    .call(attachInteractions);
+
+                // Add internal boundaries mesh
+                svg.append("path")
+                    .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
+                    .attr("fill", "none")
+                    .attr("stroke", "rgba(255, 255, 255, 0.3)")
+                    .attr("stroke-width", 0.5)
+                    .attr("stroke-linejoin", "round")
+                    .attr("pointer-events", "none");
+
+                // Draw Labels
+                svg.append("g").attr("class", "labels-group").selectAll("text")
+                    .data(countries.filter(d => {
+                        const id = String(d.id).padStart(3, '0');
+                        return latamData[id];
+                    }))
+                    .join("text")
+                    .attr("class", d => {
+                        const abbr = latamData[String(d.id).padStart(3, '0')].abbr;
+                        return ["BZ", "CR", "SV", "GT", "HN", "NI", "PA", "GY", "SR"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
+                    })
+                    .attr("transform", d => {
+                        const id = String(d.id).padStart(3, '0');
+                        let point = path.centroid(d);
+                        
+                        // Manual adjustments
+                        if (id === "152") { // Chile
+                            point[0] -= 15;
+                            point[1] += 30;
+                        }
+                        if (id === "032") { // Argentina
+                            point[0] -= 10;
+                        }
+
+                        if (isNaN(point[0]) || isNaN(point[1])) return `translate(-1000,-1000)`;
+                        return `translate(${point[0]},${point[1]})`;
+                    })
+                    .attr("dy", ".35em")
+                    .attr("data-id", d => String(d.id).padStart(3, '0'))
+                    .text(d => latamData[String(d.id).padStart(3, '0')].abbr);
+
+                drawCompass(svg, 900, 560);
+            });
+        }
+
         function createMapSvg(width, height) {
             return d3.select("#map-container").insert("svg", ":first-child")
                 .attr("viewBox", `0 0 ${width} ${height}`)
@@ -931,6 +1043,8 @@
                 else if (code === 'wls') code = 'gb-wls';
                 else if (code === 'nir') code = 'gb-nir';
                 flagUrl = `https://flagcdn.com/w80/${code}.png`;
+            } else if (currentRegion === 'latam') {
+                flagUrl = `https://flagcdn.com/w80/${info.abbr.toLowerCase()}.png`;
             } else if (currentRegion === 'canada') {
                 const caFlags = {
                     "AB": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Flag_of_Alberta.svg",
