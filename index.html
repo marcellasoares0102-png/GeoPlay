@@ -1,1239 +1,1079 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Interactive Maps</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://unpkg.com/topojson-client@3"></script>
-    
-    <style>
-        body {
-            background-color: #050505; /* Pitch black base - More black than blue */
-            color: #f8fafc;
-            font-family: 'Montserrat', sans-serif;
-            overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(255, 255, 255, 0.02), transparent 30%),
-                radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.02), transparent 30%);
-        }
-
-        .liquid-glass {
-            background: rgba(10, 10, 10, 0.6);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-        }
-
-        .liquid-glass-input {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            transition: all 0.3s ease;
-        }
-
-        .liquid-glass-input:focus {
-            background: rgba(20, 20, 20, 0.9);
-            border-color: rgba(255, 255, 255, 0.3);
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
-            outline: none;
-        }
-
-        .map-container {
-            position: relative;
-            width: 100%;
-            height: calc(100vh - 180px); /* Fill remaining space below header */
-            min-height: 500px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            border-radius: 1.5rem;
-        }
-
-        svg {
-            width: 100%;
-            height: 100%;
-            max-height: 800px;
-        }
-
-        /* Interactive map features (States/Provinces/Countries) */
-        .map-feature {
-            cursor: pointer;
-            stroke: rgba(255, 255, 255, 0.6);
-            stroke-width: 0.8;
-            transition: fill 0.3s, stroke-width 0.2s, stroke 0.2s, filter 0.3s;
-        }
-
-        .map-feature:hover:not(.answered) {
-            fill-opacity: 0.8;
-            stroke: #ffffff;
-            stroke-width: 2;
-            filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
-        }
-
-        .map-feature.active:not(.answered) {
-            stroke: #ffffff;
-            stroke-width: 3;
-            fill-opacity: 1 !important;
-            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
-        }
-
-        /* Answered State (Greyed out) */
-        .map-feature.answered, .pin.answered {
-            fill: #334155 !important; /* Slate 700 */
-            stroke: #1e293b !important; /* Slate 800 */
-            fill-opacity: 0.5 !important;
-            cursor: default;
-            pointer-events: none;
-            filter: none !important;
-        }
-
-        .feature-label {
-            fill: #ffffff;
-            font-size: 10px;
-            font-weight: 700;
-            text-anchor: middle;
-            pointer-events: none;
-            text-shadow:
-                -1px -1px 0 #000,  
-                 1px -1px 0 #000,
-                -1px  1px 0 #000,
-                 1px  1px 0 #000;
-        }
-        
-        .feature-label-small {
-            font-size: 7.5px;
-        }
-
-        .answered-label {
-            fill: #64748b; /* Slate 500 */
-            text-shadow: none;
-        }
-
-        .pin-visual {
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .pin:hover:not(.answered) .pin-visual {
-            transform: scale(1.2) translateY(-5px);
-        }
-
-        .pin.active:not(.answered) .pin-visual path {
-            stroke: #ffffff;
-            stroke-width: 3;
-        }
-
-        .tooltip {
-            position: absolute;
-            opacity: 0;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            pointer-events: none;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: opacity 0.2s;
-            z-index: 100;
-            transform: translate(-50%, -100%);
-            margin-top: -10px;
-        }
-
-        .globe-feature {
-            fill: #525252; /* Medium neutral gray for locked continents */
-            stroke: #262626; /* Darker border */
-            stroke-width: 0.5;
-            transition: fill 0.3s;
-        }
-        .globe-highlight {
-            fill: #f8fafc; /* White for target areas */
-            cursor: pointer;
-            transition: fill 0.3s, filter 0.3s;
-        }
-        .globe-highlight.hovered {
-            fill: #a3a3a3; /* Light grey when hovered */
-            filter: drop-shadow(0 0 12px rgba(255,255,255,0.4));
-        }
-
-        /* Transitions */
-        .fade-enter { opacity: 0; transform: translateY(10px); }
-        .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
-        .fade-exit { opacity: 1; transform: translateY(0); }
-        .fade-exit-active { opacity: 0; transform: translateY(-10px); transition: opacity 300ms, transform 300ms; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Interactive Maps</title>
+<link href="https://fonts.googleapis.com/css?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/topojson-client@3"></script>
+<style>
+body {
+    background-color: #050505;
+    color: #f8fafc;
+    font-family: 'Montserrat', sans-serif;
+    overflow-x: hidden;
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(255, 255, 255, 0.02), transparent 30%),
+        radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.02), transparent 30%);
+}
+.liquid-glass {
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+.liquid-glass-input {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    transition: all 0.3s ease;
+}
+.liquid-glass-input:focus {
+    background: rgba(20, 20, 20, 0.9);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+    outline: none;
+}
+.map-container {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 180px);
+    min-height: 500px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    border-radius: 1.5rem;
+}
+svg {
+    width: 100%;
+    height: 100%;
+    max-height: 800px;
+}
+.map-feature {
+    cursor: pointer;
+    stroke: rgba(255, 255, 255, 0.6);
+    stroke-width: 0.8;
+    transition: fill 0.3s, stroke-width 0.2s, stroke 0.2s, filter 0.3s;
+}
+.map-feature:hover:not(.answered) {
+    fill-opacity: 0.8;
+    stroke: #ffffff;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
+}
+.map-feature.active:not(.answered) {
+    stroke: #ffffff;
+    stroke-width: 3;
+    fill-opacity: 1 !important;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+}
+.map-feature.answered, .pin.answered {
+    fill: #334155 !important;
+    stroke: #1e293b !important;
+    fill-opacity: 0.5 !important;
+    cursor: default;
+    pointer-events: none;
+    filter: none !important;
+}
+.feature-label {
+    fill: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    text-anchor: middle;
+    pointer-events: none;
+    text-shadow: -1px 1px 0 #000, 1px 1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+.feature-label-small {
+    font-size: 7.5px;
+}
+.answered-label {
+    fill: #64748b;
+    text-shadow: none;
+}
+.pin-visual {
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.pin:hover:not(.answered) .pin-visual {
+    transform: scale(1.2) translateY(-5px);
+}
+.pin.active:not(.answered) .pin-visual path {
+    stroke: #ffffff;
+    stroke-width: 3;
+}
+.tooltip {
+    position: absolute;
+    opacity: 0;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    pointer-events: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: opacity 0.2s;
+    z-index: 100;
+    transform: translate(-50%, -100%);
+    margin-top: -10px;
+}
+.globe-feature {
+    fill: #525252;
+    stroke: #262626;
+    stroke-width: 0.5;
+    transition: fill 0.3s;
+}
+.globe-highlight {
+    fill: #f8fafc;
+    cursor: pointer;
+    transition: fill 0.3s, filter 0.3s;
+}
+.globe-highlight.hovered {
+    fill: #a3a3a3;
+    filter: drop-shadow(0 0 12px rgba(255,255,255,0.4));
+}
+</style>
 </head>
 <body class="min-h-screen flex flex-col text-slate-100 relative">
+<main class="w-full max-w-6xl mx-auto p-4 flex-1 flex flex-col relative z-10">
+    <!-- View 1: Home (Globe) -->
+    <div id="home-view" class="flex-1 flex flex-col items-center justify-center space-y-8 py-10 transition-opacity duration-500">
+        <div class="text-center space-y-4">
+            <h1 class="text-5xl md:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 tracking-tight">GeoPlay</h1>
+            <p class="text-lg text-slate-400 max-w-lg mx-auto">Rotate the globe and click on the <span class="text-white font-bold">highlighted regions</span> to begin a geography challenge.</p>
+        </div>
+        <div id="globe-container" class="w-full max-w-2xl aspect-square cursor-grab active:cursor-grabbing relative"></div>
+        <div class="flex gap-4 text-sm font-medium text-slate-400">
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-white"></div> Available</div>
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-slate-800 border border-slate-600"></div> Coming Soon</div>
+        </div>
+    </div>
 
-    <main class="w-full max-w-6xl mx-auto p-4 flex-1 flex flex-col relative z-10">
-        
-        <!-- View 1: Home (Globe) -->
-        <div id="home-view" class="flex-1 flex flex-col items-center justify-center space-y-8 py-10 transition-opacity duration-500">
-            <div class="text-center space-y-4">
-                <h1 class="text-5xl md:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 tracking-tight">GeoPlay</h1>
-                <p class="text-lg text-slate-400 max-w-lg mx-auto">Rotate the globe and click on the <span class="text-white font-bold">highlighted regions</span> to begin a geography challenge.</p>
+    <!-- View 2: Quiz Map -->
+    <div id="quiz-view" class="hidden flex-1 flex-col space-y-6 transition-opacity duration-500 opacity-0 pb-10">
+        <div class="liquid-glass rounded-2xl p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <button onclick="goHome()" class="p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/80 border border-slate-600/50 text-slate-300 transition-colors group">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:-translate-x-1 transition-transform"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                </button>
+                <div>
+                    <h2 id="quiz-title" class="text-3xl font-extrabold text-white tracking-tight">Region Map</h2>
+                    <div id="legend-container" class="flex flex-wrap gap-3 text-xs font-semibold text-slate-300 mt-2"></div>
+                </div>
             </div>
-            
-            <!-- Globe Container -->
-            <div id="globe-container" class="w-full max-w-2xl aspect-square cursor-grab active:cursor-grabbing relative">
-                <!-- D3 Globe injected here -->
-            </div>
-            
-            <div class="flex gap-4 text-sm font-medium text-slate-400">
-                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-white"></div> Available</div>
-                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-slate-800 border border-slate-600"></div> Coming Soon</div>
+            <div class="bg-slate-900/60 border border-slate-700/50 px-6 py-3 rounded-xl text-center shadow-inner min-w-[140px]">
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Score</p>
+                <p class="text-3xl font-black text-white"><span id="score-display">0</span> <span class="text-base text-slate-500 font-semibold" id="score-total">/ 0</span></p>
             </div>
         </div>
 
-        <div id="quiz-view" class="hidden flex-1 flex-col space-y-6 transition-opacity duration-500 opacity-0 pb-10">
+        <div class="map-container liquid-glass" id="map-container">
+            <div id="tooltip" class="tooltip liquid-glass border border-white/10"></div>
             
-            <!-- Header: Title, Score, Home Button -->
-            <div class="liquid-glass rounded-2xl p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-4">
-                    <button onclick="goHome()" class="p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/80 border border-slate-600/50 text-slate-300 transition-colors group">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:-translate-x-1 transition-transform"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-                    </button>
-                    <div>
-                        <h2 id="quiz-title" class="text-3xl font-extrabold text-white tracking-tight">Region Map</h2>
-                        <div id="legend-container" class="flex flex-wrap gap-3 text-xs font-semibold text-slate-300 mt-2">
-                            <!-- Injected by JS -->
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-slate-900/60 border border-slate-700/50 px-6 py-3 rounded-xl text-center shadow-inner min-w-[140px]">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Score</p>
-                    <p class="text-3xl font-black text-white"><span id="score-display">0</span> <span class="text-base text-slate-500 font-semibold" id="score-total">/ 0</span></p>
-                </div>
-            </div>
-
-            <!-- Map Area -->
-            <div class="map-container liquid-glass" id="map-container">
-                <div id="tooltip" class="tooltip liquid-glass border border-white/10"></div>
-                <!-- D3 Map injected here -->
-                
-                <div id="form-card" class="absolute top-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md liquid-glass p-6 rounded-2xl hidden opacity-0 transition-all duration-300 transform scale-95 shadow-2xl border-t border-l border-white/20 z-50">
+            <!-- 3-Column Modal Card -->
+            <div id="form-card" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl liquid-glass p-5 rounded-2xl hidden opacity-0 transition-all duration-300 transform scale-95 shadow-2xl border border-white/20 z-50">
+                <div class="flex flex-col md:flex-row items-stretch justify-center gap-4 w-full">
                     
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center border border-white/20 overflow-hidden shrink-0 shadow-inner relative">
-                                <img id="selected-flag" src="" alt="Flag" class="w-full h-full object-cover hidden absolute inset-0">
-                                <span id="selected-abbr" class="text-sm font-bold text-slate-300"></span>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-white leading-tight">Identify Region</h3>
-                                <p class="text-xs text-slate-400">Enter name and capital.</p>
-                            </div>
+                    <!-- 1. LADO ESQUERDO: Bandeira e Logos -->
+                    <div class="w-full md:w-1/4 h-48 md:h-52 bg-slate-900/90 border border-slate-700 rounded-xl flex flex-col items-center justify-center p-3 shadow-xl relative overflow-hidden">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Bandeira / Equipes</span>
+                        <div id="left-flag-container" class="w-full h-full flex flex-wrap gap-2 items-center justify-center overflow-y-auto">
+                            <!-- Injetado dinamicamente -->
                         </div>
-                        <button onclick="closeForm()" class="text-slate-400 hover:text-white p-1 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
                     </div>
 
-                    <form id="quiz-form" class="space-y-4">
-                        <input type="hidden" id="current-id">
-                        
-                        <div class="space-y-3">
+                    <!-- 2. CENTRO: O Card da Pergunta Normal -->
+                    <div class="w-full md:w-2/4 h-auto md:h-52 bg-slate-800/95 border border-slate-600 rounded-xl p-4 flex flex-col justify-between shadow-2xl text-white relative">
+                        <div class="flex justify-between items-start mb-2">
                             <div>
-                                <input type="text" id="name-input" class="w-full px-4 py-2.5 rounded-lg liquid-glass-input text-sm" placeholder="Name (e.g. California, France)" required autocomplete="off">
+                                <h3 class="text-sm font-bold text-white leading-tight">Identify Region</h3>
+                                <p class="text-[11px] text-slate-400">Enter name and capital.</p>
                             </div>
-                            <div>
-                                <input type="text" id="capital-input" class="w-full px-4 py-2.5 rounded-lg liquid-glass-input text-sm" placeholder="Capital City" required autocomplete="off">
+                            <button onclick="closeForm()" class="text-slate-400 hover:text-white p-1 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        <form id="quiz-form" class="space-y-3">
+                            <input type="hidden" id="current-id">
+                            <div class="space-y-2">
+                                <input type="text" id="name-input" class="w-full px-3 py-2 rounded-lg liquid-glass-input text-xs" placeholder="Name (e.g. California, France)" required autocomplete="off">
+                                <input type="text" id="capital-input" class="w-full px-3 py-2 rounded-lg liquid-glass-input text-xs" placeholder="Capital City" required autocomplete="off">
                             </div>
-                        </div>
+                            <div id="feedback-message" class="text-xs font-semibold text-center hidden py-1.5 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30">
+                                Try again!
+                            </div>
+                            <button type="submit" class="w-full bg-white text-slate-900 hover:bg-slate-200 font-bold py-2 rounded-lg shadow-lg transition-all active:scale-[0.98] text-xs">
+                                Confirm
+                            </button>
+                        </form>
+                    </div>
 
-                        <div id="hint-container" class="mt-2 hidden">
-                            <div id="region-hint" class="flex gap-4 justify-center items-center bg-white/5 p-3 rounded-xl border border-white/10"></div>
+                    <!-- 3. LADO DIREITO: Formato do Estado Isolado -->
+                    <div class="w-full md:w-1/4 h-48 md:h-52 bg-slate-900/90 border border-slate-700 rounded-xl flex flex-col items-center justify-center p-3 shadow-xl relative overflow-hidden">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1 absolute top-2">Formato</span>
+                        <div id="shape-content" class="w-full h-full flex items-center justify-center">
+                            <!-- SVG isolado injetado dinamicamente -->
                         </div>
+                    </div>
 
-                        <div id="feedback-message" class="text-sm font-semibold text-center hidden py-2 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30">
-                            Try again!
-                        </div>
-
-                        <button type="submit" class="w-full bg-white text-slate-900 hover:bg-slate-200 font-bold py-2.5 rounded-lg shadow-lg transition-all active:scale-[0.98]">
-                            Confirm
-                        </button>
-                    </form>
                 </div>
             </div>
         </div>
-    </main>
+    </div>
+</main>
 
-    <script>
-    // USA Data
-    const usaRegionColors = { "Northeast": "#0ea5e9", "South": "#ef4444", "Midwest": "#14b8a6", "West": "#2563eb", "Territories": "#8b5cf6" };
-    const stateData = {
-        "01": { name: "Alabama", abbr: "AL", capital: "Montgomery", region: "South" },
-        "02": { name: "Alaska", abbr: "AK", capital: "Juneau", region: "West" },
-        "04": { name: "Arizona", abbr: "AZ", capital: "Phoenix", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ari.png' class='h-12 object-contain drop-shadow-md'>" },
-        "05": { name: "Arkansas", abbr: "AR", capital: "Little Rock", region: "South" },
-        "06": { name: "California", abbr: "CA", capital: "Sacramento", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/sf.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/lar.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/lac.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/sj.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/la.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/ana.png' class='h-12 object-contain drop-shadow-md'>" },
-        "08": { name: "Colorado", abbr: "CO", capital: "Denver", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/den.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/col.png' class='h-12 object-contain drop-shadow-md'>" },
-        "09": { name: "Connecticut", abbr: "CT", capital: "Hartford", region: "Northeast" },
-        "10": { name: "Delaware", abbr: "DE", capital: "Dover", region: "South" },
-        "12": { name: "Florida", abbr: "FL", capital: "Tallahassee", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/mia.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/tb.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/jax.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/tb.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/fla.png' class='h-12 object-contain drop-shadow-md'>" },
-        "13": { name: "Georgia", abbr: "GA", capital: "Atlanta", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/atl.png' class='h-12 object-contain drop-shadow-md'>" },
-        "15": { name: "Hawaii", abbr: "HI", capital: "Honolulu", region: "West" },
-        "16": { name: "Idaho", abbr: "ID", capital: "Boise", region: "West" },
-        "17": { name: "Illinois", abbr: "IL", capital: "Springfield", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/chi.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/chi.png' class='h-12 object-contain drop-shadow-md'>" },
-        "18": { name: "Indiana", abbr: "IN", capital: "Indianapolis", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ind.png' class='h-12 object-contain drop-shadow-md'>" },
-        "19": { name: "Iowa", abbr: "IA", capital: "Des Moines", region: "Midwest" },
-        "20": { name: "Kansas", abbr: "KS", capital: "Topeka", region: "Midwest" },
-        "21": { name: "Kentucky", abbr: "KY", capital: "Frankfort", region: "South" },
-        "22": { name: "Louisiana", abbr: "LA", capital: "Baton Rouge", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/no.png' class='h-12 object-contain drop-shadow-md'>" },
-        "23": { name: "Maine", abbr: "ME", capital: "Augusta", region: "Northeast" },
-        "24": { name: "Maryland", abbr: "MD", capital: "Annapolis", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/bal.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png' class='h-12 object-contain drop-shadow-md'>" },
-        "25": { name: "Massachusetts", abbr: "MA", capital: "Boston", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ne.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/bos.png' class='h-12 object-contain drop-shadow-md'>" },
-        "26": { name: "Michigan", abbr: "MI", capital: "Lansing", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/det.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/det.png' class='h-12 object-contain drop-shadow-md'>" },
-        "27": { name: "Minnesota", abbr: "MN", capital: "St. Paul", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/min.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/min.png' class='h-12 object-contain drop-shadow-md'>" },
-        "28": { name: "Mississippi", abbr: "MS", capital: "Jackson", region: "South" },
-        "29": { name: "Missouri", abbr: "MO", capital: "Jefferson City", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/kc.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/stl.png' class='h-12 object-contain drop-shadow-md'>" },
-        "30": { name: "Montana", abbr: "MT", capital: "Helena", region: "West" },
-        "31": { name: "Nebraska", abbr: "NE", capital: "Lincoln", region: "Midwest" },
-        "32": { name: "Nevada", abbr: "NV", capital: "Carson City", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/lv.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/vgk.png' class='h-12 object-contain drop-shadow-md'>" },
-        "33": { name: "New Hampshire", abbr: "NH", capital: "Concord", region: "Northeast" },
-        "34": { name: "New Jersey", abbr: "NJ", capital: "Trenton", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/nj.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/nyg.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/nyj.png' class='h-12 object-contain drop-shadow-md'>" },
-        "35": { name: "New Mexico", abbr: "NM", capital: "Santa Fe", region: "West" },
-        "36": { name: "New York", abbr: "NY", capital: "Albany", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/buf.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/buf.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/nyr.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/nyi.png' class='h-12 object-contain drop-shadow-md'>" },
-        "37": { name: "North Carolina", abbr: "NC", capital: "Raleigh", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/car.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/car.png' class='h-12 object-contain drop-shadow-md'>" },
-        "38": { name: "North Dakota", abbr: "ND", capital: "Bismarck", region: "Midwest" },
-        "39": { name: "Ohio", abbr: "OH", capital: "Columbus", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/cle.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/cin.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/cbj.png' class='h-12 object-contain drop-shadow-md'>" },
-        "40": { name: "Oklahoma", abbr: "OK", capital: "Oklahoma City", region: "South" },
-        "41": { name: "Oregon", abbr: "OR", capital: "Salem", region: "West" },
-        "42": { name: "Pennsylvania", abbr: "PA", capital: "Harrisburg", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/phi.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/pit.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/phi.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/pit.png' class='h-12 object-contain drop-shadow-md'>" },
-        "44": { name: "Rhode Island", abbr: "RI", capital: "Providence", region: "Northeast" },
-        "45": { name: "South Carolina", abbr: "SC", capital: "Columbia", region: "South" },
-        "46": { name: "South Dakota", abbr: "SD", capital: "Pierre", region: "Midwest" },
-        "47": { name: "Tennessee", abbr: "TN", capital: "Nashville", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ten.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/nsh.png' class='h-12 object-contain drop-shadow-md'>" },
-        "48": { name: "Texas", abbr: "TX", capital: "Austin", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/dal.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/hou.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/dal.png' class='h-12 object-contain drop-shadow-md'>" },
-        "49": { name: "Utah", abbr: "UT", capital: "Salt Lake City", region: "West" },
-        "50": { name: "Vermont", abbr: "VT", capital: "Montpelier", region: "Northeast" },
-        "51": { name: "Virginia", abbr: "VA", capital: "Richmond", region: "South" },
-        "53": { name: "Washington", abbr: "WA", capital: "Olympia", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/sea.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/sea.png' class='h-12 object-contain drop-shadow-md'>" },
-        "54": { name: "West Virginia", abbr: "WV", capital: "Charleston", region: "South" },
-        "55": { name: "Wisconsin", abbr: "WI", capital: "Madison", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/gb.png' class='h-12 object-contain drop-shadow-md'>" },
-        "56": { name: "Wyoming", abbr: "WY", capital: "Cheyenne", region: "West" }
-    };
-        
-        const usaAliases = {
-            "15": ["hawai"]
-        };
+<script>
+// USA Data
+const usaRegionColors = { "Northeast": "#0ea5e9", "South": "#ef4444", "Midwest": "#14b8a6", "West": "#2563eb", "Territories": "#8b5cf6" };
+const stateData = {
+    "01": { name: "Alabama", abbr: "AL", capital: "Montgomery", region: "South" },
+    "02": { name: "Alaska", abbr: "AK", capital: "Juneau", region: "West" },
+    "04": { name: "Arizona", abbr: "AZ", capital: "Phoenix", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ari.png' class='h-10 object-contain drop-shadow-md'>" },
+    "05": { name: "Arkansas", abbr: "AR", capital: "Little Rock", region: "South" },
+    "06": { name: "California", abbr: "CA", capital: "Sacramento", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/sf.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/lar.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/lac.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/sj.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/la.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/ana.png' class='h-8 object-contain drop-shadow-md'>" },
+    "08": { name: "Colorado", abbr: "CO", capital: "Denver", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/den.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/col.png' class='h-10 object-contain drop-shadow-md'>" },
+    "09": { name: "Connecticut", abbr: "CT", capital: "Hartford", region: "Northeast" },
+    "10": { name: "Delaware", abbr: "DE", capital: "Dover", region: "South" },
+    "12": { name: "Florida", abbr: "FL", capital: "Tallahassee", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/mia.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/tb.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/jax.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/tb.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/fla.png' class='h-8 object-contain drop-shadow-md'>" },
+    "13": { name: "Georgia", abbr: "GA", capital: "Atlanta", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/atl.png' class='h-10 object-contain drop-shadow-md'>" },
+    "15": { name: "Hawaii", abbr: "HI", capital: "Honolulu", region: "West" },
+    "16": { name: "Idaho", abbr: "ID", capital: "Boise", region: "West" },
+    "17": { name: "Illinois", abbr: "IL", capital: "Springfield", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/chi.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/chi.png' class='h-10 object-contain drop-shadow-md'>" },
+    "18": { name: "Indiana", abbr: "IN", capital: "Indianapolis", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ind.png' class='h-10 object-contain drop-shadow-md'>" },
+    "19": { name: "Iowa", abbr: "IA", capital: "Des Moines", region: "Midwest" },
+    "20": { name: "Kansas", abbr: "KS", capital: "Topeka", region: "Midwest" },
+    "21": { name: "Kentucky", abbr: "KY", capital: "Frankfort", region: "South" },
+    "22": { name: "Louisiana", abbr: "LA", capital: "Baton Rouge", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/no.png' class='h-10 object-contain drop-shadow-md'>" },
+    "23": { name: "Maine", abbr: "ME", capital: "Augusta", region: "Northeast" },
+    "24": { name: "Maryland", abbr: "MD", capital: "Annapolis", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/bal.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png' class='h-10 object-contain drop-shadow-md'>" },
+    "25": { name: "Massachusetts", abbr: "MA", capital: "Boston", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ne.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/bos.png' class='h-10 object-contain drop-shadow-md'>" },
+    "26": { name: "Michigan", abbr: "MI", capital: "Lansing", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/det.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/det.png' class='h-10 object-contain drop-shadow-md'>" },
+    "27": { name: "Minnesota", abbr: "MN", capital: "St. Paul", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/min.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/min.png' class='h-10 object-contain drop-shadow-md'>" },
+    "28": { name: "Mississippi", abbr: "MS", capital: "Jackson", region: "South" },
+    "29": { name: "Missouri", abbr: "MO", capital: "Jefferson City", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/kc.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/stl.png' class='h-10 object-contain drop-shadow-md'>" },
+    "30": { name: "Montana", abbr: "MT", capital: "Helena", region: "West" },
+    "31": { name: "Nebraska", abbr: "NE", capital: "Lincoln", region: "Midwest" },
+    "32": { name: "Nevada", abbr: "NV", capital: "Carson City", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/lv.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/vgk.png' class='h-10 object-contain drop-shadow-md'>" },
+    "33": { name: "New Hampshire", abbr: "NH", capital: "Concord", region: "Northeast" },
+    "34": { name: "New Jersey", abbr: "NJ", capital: "Trenton", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/nj.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/nyg.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/nyj.png' class='h-10 object-contain drop-shadow-md'>" },
+    "35": { name: "New Mexico", abbr: "NM", capital: "Santa Fe", region: "West" },
+    "36": { name: "New York", abbr: "NY", capital: "Albany", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/buf.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/buf.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/nyr.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/nyi.png' class='h-8 object-contain drop-shadow-md'>" },
+    "37": { name: "North Carolina", abbr: "NC", capital: "Raleigh", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/car.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/car.png' class='h-10 object-contain drop-shadow-md'>" },
+    "38": { name: "North Dakota", abbr: "ND", capital: "Bismarck", region: "Midwest" },
+    "39": { name: "Ohio", abbr: "OH", capital: "Columbus", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/cle.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/cin.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/cbj.png' class='h-8 object-contain drop-shadow-md'>" },
+    "40": { name: "Oklahoma", abbr: "OK", capital: "Oklahoma City", region: "South" },
+    "41": { name: "Oregon", abbr: "OR", capital: "Salem", region: "West" },
+    "42": { name: "Pennsylvania", abbr: "PA", capital: "Harrisburg", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/phi.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/pit.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/phi.png' class='h-8 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/pit.png' class='h-8 object-contain drop-shadow-md'>" },
+    "44": { name: "Rhode Island", abbr: "RI", capital: "Providence", region: "Northeast" },
+    "45": { name: "South Carolina", abbr: "SC", capital: "Columbia", region: "South" },
+    "46": { name: "South Dakota", abbr: "SD", capital: "Pierre", region: "Midwest" },
+    "47": { name: "Tennessee", abbr: "TN", capital: "Nashville", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ten.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/nsh.png' class='h-10 object-contain drop-shadow-md'>" },
+    "48": { name: "Texas", abbr: "TX", capital: "Austin", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/dal.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/hou.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/dal.png' class='h-10 object-contain drop-shadow-md'>" },
+    "49": { name: "Utah", abbr: "UT", capital: "Salt Lake City", region: "West" },
+    "50": { name: "Vermont", abbr: "VT", capital: "Montpelier", region: "Northeast" },
+    "51": { name: "Virginia", abbr: "VA", capital: "Richmond", region: "South" },
+    "53": { name: "Washington", abbr: "WA", capital: "Olympia", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/sea.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/sea.png' class='h-10 object-contain drop-shadow-md'>" },
+    "54": { name: "West Virginia", abbr: "WV", capital: "Charleston", region: "South" },
+    "55": { name: "Wisconsin", abbr: "WI", capital: "Madison", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/gb.png' class='h-10 object-contain drop-shadow-md'>" },
+    "56": { name: "Wyoming", abbr: "WY", capital: "Cheyenne", region: "West" }
+};
+const usaAliases = { "15": ["hawai"] };
 
-        // Canada Data
-        const canadaRegionColors = { "West": "#2563eb", "Prairies": "#14b8a6", "Central": "#ef4444", "Atlantic": "#0ea5e9", "Northern": "#8b5cf6" };
-        const provinceData = {
-            "Alberta": { abbr: "AB", capital: "Edmonton", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/edm.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/cgy.png' class='h-12 object-contain drop-shadow-md'>" },
-            "British Columbia": { abbr: "BC", capital: "Victoria", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/van.png' class='h-12 object-contain drop-shadow-md'>" },
-            "Manitoba": { abbr: "MB", capital: "Winnipeg", region: "Prairies", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/wpg.png' class='h-12 object-contain drop-shadow-md'>" },
-            "New Brunswick": { abbr: "NB", capital: "Fredericton", region: "Atlantic" },
-            "Newfoundland and Labrador": { abbr: "NL", capital: "St. John's", region: "Atlantic" },
-            "Nova Scotia": { abbr: "NS", capital: "Halifax", region: "Atlantic" },
-            "Ontario": { abbr: "ON", capital: "Toronto", region: "Central", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/tor.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/ott.png' class='h-12 object-contain drop-shadow-md'>" },
-            "Prince Edward Island": { abbr: "PE", capital: "Charlottetown", region: "Atlantic" },
-            "Quebec": { abbr: "QC", capital: "Quebec City", region: "Central", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/mtl.png' class='h-12 object-contain drop-shadow-md'>" },
-            "Saskatchewan": { abbr: "SK", capital: "Regina", region: "Prairies" },
-            "Northwest Territories": { abbr: "NT", capital: "Yellowknife", region: "Northern" },
-            "Nunavut": { abbr: "NU", capital: "Iqaluit", region: "Northern" },
-            "Yukon": { abbr: "YT", capital: "Whitehorse", region: "Northern" }
-        };
-        
-        function getCanadaId(d) {
-            let name = d.properties.name;
-            if (name === "Newfoundland") return "Newfoundland and Labrador";
-            if (name === "Yukon Territory") return "Yukon";
-            return name;
-        }
+// Canada Data
+const canadaRegionColors = { "West": "#2563eb", "Prairies": "#14b8a6", "Central": "#ef4444", "Atlantic": "#0ea5e9", "Northern": "#8b5cf6" };
+const provinceData = {
+    "Alberta": { abbr: "AB", capital: "Edmonton", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/edm.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/cgy.png' class='h-10 object-contain drop-shadow-md'>" },
+    "British Columbia": { abbr: "BC", capital: "Victoria", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/van.png' class='h-10 object-contain drop-shadow-md'>" },
+    "Manitoba": { abbr: "MB", capital: "Winnipeg", region: "Prairies", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/wpg.png' class='h-10 object-contain drop-shadow-md'>" },
+    "New Brunswick": { abbr: "NB", capital: "Fredericton", region: "Atlantic" },
+    "Newfoundland and Labrador": { abbr: "NL", capital: "St. John's", region: "Atlantic" },
+    "Nova Scotia": { abbr: "NS", capital: "Halifax", region: "Atlantic" },
+    "Ontario": { abbr: "ON", capital: "Toronto", region: "Central", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/tor.png' class='h-10 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/ott.png' class='h-10 object-contain drop-shadow-md'>" },
+    "Prince Edward Island": { abbr: "PE", capital: "Charlottetown", region: "Atlantic" },
+    "Quebec": { abbr: "QC", capital: "Quebec City", region: "Central", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/mtl.png' class='h-10 object-contain drop-shadow-md'>" },
+    "Saskatchewan": { abbr: "SK", capital: "Regina", region: "Prairies" },
+    "Northwest Territories": { abbr: "NT", capital: "Yellowknife", region: "Northern" },
+    "Nunavut": { abbr: "NU", capital: "Iqaluit", region: "Northern" },
+    "Yukon": { abbr: "YT", capital: "Whitehorse", region: "Northern" }
+};
+function getCanadald(d) {
+    let name = d.properties.name;
+    if (name === "Newfoundland") return "Newfoundland and Labrador";
+    if (name === "Yukon Territory") return "Yukon";
+    return name;
+}
 
-        // Europe Data
-        const euRegionColors = { "Northern": "#0ea5e9", "Southern": "#ef4444", "Western": "#2563eb", "Eastern": "#14b8a6" };
-        const countryData = {
-            "008": { name: "Albania", abbr: "AL", capital: "Tirana", region: "Southern" },
-            "020": { name: "Andorra", abbr: "AD", capital: "Andorra la Vella", region: "Southern" },
-            "040": { name: "Austria", abbr: "AT", capital: "Vienna", region: "Western" },
-            "112": { name: "Belarus", abbr: "BY", capital: "Minsk", region: "Eastern" },
-            "056": { name: "Belgium", abbr: "BE", capital: "Brussels", region: "Western" },
-            "070": { name: "Bosnia and Herzegovina", abbr: "BA", capital: "Sarajevo", region: "Southern" },
-            "100": { name: "Bulgaria", abbr: "BG", capital: "Sofia", region: "Eastern" },
-            "191": { name: "Croatia", abbr: "HR", capital: "Zagreb", region: "Southern" },
-            "196": { name: "Cyprus", abbr: "CY", capital: "Nicosia", region: "Southern" },
-            "203": { name: "Czechia", abbr: "CZ", capital: "Prague", region: "Eastern" },
-            "208": { name: "Denmark", abbr: "DK", capital: "Copenhagen", region: "Northern" },
-            "233": { name: "Estonia", abbr: "EE", capital: "Tallinn", region: "Northern" },
-            "246": { name: "Finland", abbr: "FI", capital: "Helsinki", region: "Northern" },
-            "250": { name: "France", abbr: "FR", capital: "Paris", region: "Western" },
-            "276": { name: "Germany", abbr: "DE", capital: "Berlin", region: "Western" },
-            "300": { name: "Greece", abbr: "GR", capital: "Athens", region: "Southern" },
-            "348": { name: "Hungary", abbr: "HU", capital: "Budapest", region: "Eastern" },
-            "352": { name: "Iceland", abbr: "IS", capital: "Reykjavik", region: "Northern" },
-            "372": { name: "Ireland", abbr: "IE", capital: "Dublin", region: "Northern" },
-            "380": { name: "Italy", abbr: "IT", capital: "Rome", region: "Southern" },
-            "428": { name: "Latvia", abbr: "LV", capital: "Riga", region: "Northern" },
-            "438": { name: "Liechtenstein", abbr: "LI", capital: "Vaduz", region: "Western" },
-            "440": { name: "Lithuania", abbr: "LT", capital: "Vilnius", region: "Northern" },
-            "442": { name: "Luxembourg", abbr: "LU", capital: "Luxembourg", region: "Western" },
-            "470": { name: "Malta", abbr: "MT", capital: "Valletta", region: "Southern" },
-            "498": { name: "Moldova", abbr: "MD", capital: "Chisinau", region: "Eastern" },
-            "492": { name: "Monaco", abbr: "MC", capital: "Monaco", region: "Western" },
-            "499": { name: "Montenegro", abbr: "ME", capital: "Podgorica", region: "Southern" },
-            "528": { name: "Netherlands", abbr: "NL", capital: "Amsterdam", region: "Western" },
-            "807": { name: "North Macedonia", abbr: "MK", capital: "Skopje", region: "Southern" },
-            "578": { name: "Norway", abbr: "NO", capital: "Oslo", region: "Northern" },
-            "616": { name: "Poland", abbr: "PL", capital: "Warsaw", region: "Eastern" },
-            "620": { name: "Portugal", abbr: "PT", capital: "Lisbon", region: "Southern" },
-            "642": { name: "Romania", abbr: "RO", capital: "Bucharest", region: "Eastern" },
-            "643": { name: "Russia", abbr: "RU", capital: "Moscow", region: "Eastern" },
-            "674": { name: "San Marino", abbr: "SM", capital: "San Marino", region: "Southern" },
-            "688": { name: "Serbia", abbr: "RS", capital: "Belgrade", region: "Southern" },
-            "703": { name: "Slovakia", abbr: "SK", capital: "Bratislava", region: "Eastern" },
-            "705": { name: "Slovenia", abbr: "SI", capital: "Ljubljana", region: "Southern" },
-            "724": { name: "Spain", abbr: "ES", capital: "Madrid", region: "Southern" },
-            "752": { name: "Sweden", abbr: "SE", capital: "Stockholm", region: "Northern" },
-            "756": { name: "Switzerland", abbr: "CH", capital: "Bern", region: "Western" },
-            "804": { name: "Ukraine", abbr: "UA", capital: "Kyiv", region: "Eastern" },
-            "336": { name: "Vatican City", abbr: "VA", capital: "Vatican City", region: "Southern" },
-            "ENG": { name: "England", abbr: "ENG", capital: "London", region: "Northern" },
-            "SCT": { name: "Scotland", abbr: "SCT", capital: "Edinburgh", region: "Northern" },
-            "WLS": { name: "Wales", abbr: "WLS", capital: "Cardiff", region: "Northern" },
-            "NIR": { name: "Northern Ireland", abbr: "NIR", capital: "Belfast", region: "Northern" }
-        };
+// Europe Data
+const euRegionColors = { "Northern": "#0ea5e9", "Southern": "#ef4444", "Western": "#2563eb", "Eastern": "#14b8a6" };
+const countryData = {
+    "008": { name: "Albania", abbr: "AL", capital: "Tirana", region: "Southern" },
+    "020": { name: "Andorra", abbr: "AD", capital: "Andorra la Vella", region: "Southern" },
+    "040": { name: "Austria", abbr: "AT", capital: "Vienna", region: "Western" },
+    "112": { name: "Belarus", abbr: "BY", capital: "Minsk", region: "Eastern" },
+    "056": { name: "Belgium", abbr: "BE", capital: "Brussels", region: "Western" },
+    "070": { name: "Bosnia and Herzegovina", abbr: "BA", capital: "Sarajevo", region: "Southern" },
+    "100": { name: "Bulgaria", abbr: "BG", capital: "Sofia", region: "Eastern" },
+    "191": { name: "Croatia", abbr: "HR", capital: "Zagreb", region: "Southern" },
+    "196": { name: "Cyprus", abbr: "CY", capital: "Nicosia", region: "Southern" },
+    "203": { name: "Czechia", abbr: "CZ", capital: "Prague", region: "Eastern" },
+    "208": { name: "Denmark", abbr: "DK", capital: "Copenhagen", region: "Northern" },
+    "233": { name: "Estonia", abbr: "EE", capital: "Tallinn", region: "Northern" },
+    "246": { name: "Finland", abbr: "FI", capital: "Helsinki", region: "Northern" },
+    "250": { name: "France", abbr: "FR", capital: "Paris", region: "Western" },
+    "276": { name: "Germany", abbr: "DE", capital: "Berlin", region: "Western" },
+    "300": { name: "Greece", abbr: "GR", capital: "Athens", region: "Southern" },
+    "348": { name: "Hungary", abbr: "HU", capital: "Budapest", region: "Eastern" },
+    "352": { name: "Iceland", abbr: "IS", capital: "Reykjavik", region: "Northern" },
+    "372": { name: "Ireland", abbr: "IE", capital: "Dublin", region: "Northern" },
+    "380": { name: "Italy", abbr: "IT", capital: "Rome", region: "Southern" },
+    "428": { name: "Latvia", abbr: "LV", capital: "Riga", region: "Northern" },
+    "438": { name: "Liechtenstein", abbr: "LI", capital: "Vaduz", region: "Western" },
+    "440": { name: "Lithuania", abbr: "LT", capital: "Vilnius", region: "Northern" },
+    "442": { name: "Luxembourg", abbr: "LU", capital: "Luxembourg", region: "Western" },
+    "470": { name: "Malta", abbr: "MT", capital: "Valletta", region: "Southern" },
+    "498": { name: "Moldova", abbr: "MD", capital: "Chisinau", region: "Eastern" },
+    "492": { name: "Monaco", abbr: "MC", capital: "Monaco", region: "Western" },
+    "499": { name: "Montenegro", abbr: "ME", capital: "Podgorica", region: "Southern" },
+    "528": { name: "Netherlands", abbr: "NL", capital: "Amsterdam", region: "Western" },
+    "807": { name: "North Macedonia", abbr: "MK", capital: "Skopje", region: "Southern" },
+    "578": { name: "Norway", abbr: "NO", capital: "Oslo", region: "Northern" },
+    "616": { name: "Poland", abbr: "PL", capital: "Warsaw", region: "Eastern" },
+    "620": { name: "Portugal", abbr: "PT", capital: "Lisbon", region: "Southern" },
+    "642": { name: "Romania", abbr: "RO", capital: "Bucharest", region: "Eastern" },
+    "643": { name: "Russia", abbr: "RU", capital: "Moscow", region: "Eastern" },
+    "674": { name: "San Marino", abbr: "SM", capital: "San Marino", region: "Southern" },
+    "688": { name: "Serbia", abbr: "RS", capital: "Belgrade", region: "Southern" },
+    "703": { name: "Slovakia", abbr: "SK", capital: "Bratislava", region: "Eastern" },
+    "705": { name: "Slovenia", abbr: "SI", capital: "Ljubljana", region: "Southern" },
+    "724": { name: "Spain", abbr: "ES", capital: "Madrid", region: "Southern" },
+    "752": { name: "Sweden", abbr: "SE", capital: "Stockholm", region: "Northern" },
+    "756": { name: "Switzerland", abbr: "CH", capital: "Bern", region: "Western" },
+    "804": { name: "Ukraine", abbr: "UA", capital: "Kyiv", region: "Eastern" },
+    "336": { name: "Vatican City", abbr: "VA", capital: "Vatican City", region: "Southern" },
+    "ENG": { name: "England", abbr: "ENG", capital: "London", region: "Northern" },
+    "SCT": { name: "Scotland", abbr: "SCT", capital: "Edinburgh", region: "Northern" },
+    "WLS": { name: "Wales", abbr: "WLS", capital: "Cardiff", region: "Northern" },
+    "NIR": { name: "Northern Ireland", abbr: "NIR", capital: "Belfast", region: "Northern" }
+};
+const euAliases = {
+    "070": ["bosnia", "bosnia & herzegovina", "bosnia and herzegovina"],
+    "203": ["czech republic"],
+    "336": ["vatican"],
+    "643": ["russian federation"],
+    "NIR": ["n ireland", "n. ireland", "north ireland"]
+};
+const microstates = ["020", "336", "438", "442", "470", "492", "674"];
+const euCentroids = {
+    "FR": [2.5, 46.5], "RU": [38.0, 56.0], "NO": [9.0, 61.0], "IT": [12.5, 42.5],
+    "HR": [15.5, 45.2], "GR": [22.0, 39.5], "PT": [-8.0, 39.5], "ES": [-3.5, 40.0],
+    "SE": [16.0, 62.0], "FI": [26.0, 63.0], "DK": [9.5, 56.0], "NL": [5.5, 52.2],
+    "ENG": [-1.5, 52.5], "SCT": [-4.0, 56.5], "WLS": [-3.5, 52.3], "NIR": [-6.2, 54.6],
+    "MT": [14.40, 35.91], "SM": [12.45, 43.94], "VA": [12.45, 41.90],
+    "MC": [7.42, 43.73], "LI": [9.52, 47.14], "AD": [1.52, 42.50], "LU": [6.13, 49.81]
+};
 
-        const euAliases = {
-            "070": ["bosnia", "bosnia & herzegovina", "bosnia and herzegovina"],
-            "203": ["czech republic"],
-            "336": ["vatican"],
-            "643": ["russian federation"],
-            "NIR": ["n ireland", "n. ireland", "north ireland"]
-        };
+// Latin America Data
+const latamRegionColors = { "South America": "#14b8a6", "Central America": "#f59e0b" };
+const latamData = {
+    "032": { name: "Argentina", abbr: "AR", capital: "Buenos Aires", region: "South America" },
+    "068": { name: "Bolivia", abbr: "BO", capital: "Sucre", region: "South America" },
+    "076": { name: "Brazil", abbr: "BR", capital: "Brasilia", region: "South America" },
+    "152": { name: "Chile", abbr: "CL", capital: "Santiago", region: "South America" },
+    "170": { name: "Colombia", abbr: "CO", capital: "Bogota", region: "South America" },
+    "218": { name: "Ecuador", abbr: "EC", capital: "Quito", region: "South America" },
+    "328": { name: "Guyana", abbr: "GY", capital: "Georgetown", region: "South America" },
+    "600": { name: "Paraguay", abbr: "PY", capital: "Asuncion", region: "South America" },
+    "604": { name: "Peru", abbr: "PE", capital: "Lima", region: "South America" },
+    "740": { name: "Suriname", abbr: "SR", capital: "Paramaribo", region: "South America" },
+    "858": { name: "Uruguay", abbr: "UY", capital: "Montevideo", region: "South America" },
+    "862": { name: "Venezuela", abbr: "VE", capital: "Caracas", region: "South America" },
+    "084": { name: "Belize", abbr: "BZ", capital: "Belmopan", region: "Central America" },
+    "188": { name: "Costa Rica", abbr: "CR", capital: "San Jose", region: "Central America" },
+    "222": { name: "El Salvador", abbr: "SV", capital: "San Salvador", region: "Central America" },
+    "320": { name: "Guatemala", abbr: "GT", capital: "Guatemala City", region: "Central America" },
+    "340": { name: "Honduras", abbr: "HN", capital: "Tegucigalpa", region: "Central America" },
+    "558": { name: "Nicaragua", abbr: "NI", capital: "Managua", region: "Central America" },
+    "591": { name: "Panama", abbr: "PA", capital: "Panama City", region: "Central America" },
+    "484": { name: "Mexico", abbr: "MX", capital: "Mexico City", region: "Central America" },
+    "192": { name: "Cuba", abbr: "CU", capital: "Havana", region: "Central America" },
+    "332": { name: "Haiti", abbr: "HT", capital: "Port-au-Prince", region: "Central America" },
+    "214": { name: "Dominican Republic", abbr: "DO", capital: "Santo Domingo", region: "Central America" },
+    "388": { name: "Jamaica", abbr: "JM", capital: "Kingston", region: "Central America" },
+    "044": { name: "Bahamas", abbr: "BS", capital: "Nassau", region: "Central America" }
+};
+const latamAliases = {
+    "320": ["guatemala"],
+    "214": ["republica dominicana", "dominican republic"],
+    "484": ["mexico"],
+    "591": ["panama"],
+    "170": ["colombia"]
+};
 
-        const microstates = ["020", "336", "438", "442", "470", "492", "674"];
-        const euCentroids = {
-            "FR": [2.5, 46.5], "RU": [38.0, 56.0], "NO": [9.0, 61.0], "IT": [12.5, 42.5], 
-            "HR": [15.5, 45.2], "GR": [22.0, 39.5], "PT": [-8.0, 39.5], "ES": [-3.5, 40.0],
-            "SE": [16.0, 62.0], "FI": [26.0, 63.0], "DK": [9.5, 56.0], "NL": [5.5, 52.2],
-            "ENG": [-1.5, 52.5], "SCT": [-4.0, 56.5], "WLS": [-3.5, 52.3], "NIR": [-6.2, 54.6],
-            "MT": [14.40, 35.91], "SM": [12.45, 43.94], "VA": [12.45, 41.90], 
-            "MC": [7.42, 43.73], "LI": [9.52, 47.14], "AD": [1.52, 42.50], "LU": [6.13, 49.81]
-        };
+// Globe IDs
+const usaGlobeId = "840";
+const canadaGlobeId = "124";
+const europeGlobeIds = Object.keys(countryData).filter(k => !isNaN(k));
+europeGlobeIds.push("826");
+const latamGlobeIds = Object.keys(latamData);
 
-        // Latin America Data
-        const latamRegionColors = { "South America": "#14b8a6", "Central America": "#f59e0b" };
-        const latamData = {
-            "032": { name: "Argentina", abbr: "AR", capital: "Buenos Aires", region: "South America" },
-            "068": { name: "Bolivia", abbr: "BO", capital: "Sucre", region: "South America" },
-            "076": { name: "Brazil", abbr: "BR", capital: "Brasilia", region: "South America" },
-            "152": { name: "Chile", abbr: "CL", capital: "Santiago", region: "South America" },
-            "170": { name: "Colombia", abbr: "CO", capital: "Bogota", region: "South America" },
-            "218": { name: "Ecuador", abbr: "EC", capital: "Quito", region: "South America" },
-            "328": { name: "Guyana", abbr: "GY", capital: "Georgetown", region: "South America" },
-            "600": { name: "Paraguay", abbr: "PY", capital: "Asuncion", region: "South America" },
-            "604": { name: "Peru", abbr: "PE", capital: "Lima", region: "South America" },
-            "740": { name: "Suriname", abbr: "SR", capital: "Paramaribo", region: "South America" },
-            "858": { name: "Uruguay", abbr: "UY", capital: "Montevideo", region: "South America" },
-            "862": { name: "Venezuela", abbr: "VE", capital: "Caracas", region: "South America" },
-            "084": { name: "Belize", abbr: "BZ", capital: "Belmopan", region: "Central America" },
-            "188": { name: "Costa Rica", abbr: "CR", capital: "San Jose", region: "Central America" },
-            "222": { name: "El Salvador", abbr: "SV", capital: "San Salvador", region: "Central America" },
-            "320": { name: "Guatemala", abbr: "GT", capital: "Guatemala City", region: "Central America" },
-            "340": { name: "Honduras", abbr: "HN", capital: "Tegucigalpa", region: "Central America" },
-            "558": { name: "Nicaragua", abbr: "NI", capital: "Managua", region: "Central America" },
-            "591": { name: "Panama", abbr: "PA", capital: "Panama City", region: "Central America" },
-            "484": { name: "Mexico", abbr: "MX", capital: "Mexico City", region: "Central America" },
-            "192": { name: "Cuba", abbr: "CU", capital: "Havana", region: "Central America" },
-            "332": { name: "Haiti", abbr: "HT", capital: "Port-au-Prince", region: "Central America" },
-            "214": { name: "Dominican Republic", abbr: "DO", capital: "Santo Domingo", region: "Central America" },
-            "388": { name: "Jamaica", abbr: "JM", capital: "Kingston", region: "Central America" },
-            "044": { name: "Bahamas", abbr: "BS", capital: "Nassau", region: "Central America" }
-        };
+let currentRegion = null;
+let activeDataMap = null;
+let activeAliases = null;
+let score = 0;
+let totalFeatures = 0;
+let answeredSet = new Set();
+let activeFeature = null;
 
-        const latamAliases = {
-            "320": ["guatemala"],
-            "214": ["republica dominicana", "dominican republic"],
-            "484": ["mexico"],
-            "591": ["panama"],
-            "170": ["colombia"]
-        };
+const homeView = document.getElementById('home-view');
+const quizView = document.getElementById('quiz-view');
+const formCard = document.getElementById('form-card');
+const mapContainer = document.getElementById('map-container');
+const tooltip = d3.select("#tooltip");
+const feedbackMsg = document.getElementById('feedback-message');
 
-        // IDs for the globe interaction
-        const usaGlobeId = "840";
-        const canadaGlobeId = "124";
-        const europeGlobeIds = Object.keys(countryData).filter(k => !isNaN(k));
-        europeGlobeIds.push("826"); // UK unified for the globe highlight
-        const latamGlobeIds = Object.keys(latamData);
+document.addEventListener("DOMContentLoaded", () => {
+    initGlobe();
+});
 
-        let currentRegion = null;
-        let activeDataMap = null;
-        let activeAliases = null;
-        let score = 0;
-        let totalFeatures = 0;
-        let answeredSet = new Set();
-        let activeFeature = null;
+function initGlobe() {
+    const width = 600;
+    const height = 600;
+    const container = d3.select("#globe-container");
+    container.selectAll("*").remove();
+    const svg = container.append("svg")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .style("width", "100%")
+        .style("height", "100%");
 
-        const homeView = document.getElementById('home-view');
-        const quizView = document.getElementById('quiz-view');
-        const formCard = document.getElementById('form-card');
-        const mapContainer = document.getElementById('map-container');
-        const tooltip = d3.select("#tooltip");
-        const feedbackMsg = document.getElementById('feedback-message');
+    const projection = d3.geoOrthographic()
+        .scale(280)
+        .translate([width / 2, height / 2])
+        .clipAngle(90)
+        .precision(0.1);
 
-        function initGlobe() {
-            const width = 600;
-            const height = 600;
-            const container = d3.select("#globe-container");
-            container.selectAll("*").remove();
+    const path = d3.geoPath().projection(projection);
 
-            const svg = container.append("svg")
-                .attr("viewBox", `0 0 ${width} ${height}`)
-                .style("width", "100%")
-                .style("height", "100%");
+    svg.append("circle")
+        .attr("cx", width / 2)
+        .attr("cy", height / 2)
+        .attr("r", projection.scale())
+        .attr("fill", "rgba(10, 10, 10, 0.5)")
+        .attr("stroke", "rgba(255, 255, 255, 0.05)");
 
-            const projection = d3.geoOrthographic()
-                .scale(280)
-                .translate([width / 2, height / 2])
-                .clipAngle(90)
-                .precision(0.1);
+    const graticule = d3.geoGraticule();
+    svg.append("path")
+        .datum(graticule)
+        .attr("class", "graticule")
+        .attr("d", path)
+        .attr("fill", "none")
+        .attr("stroke", "rgba(255, 255, 255, 0.05)")
+        .attr("stroke-width", 0.5);
 
-            const path = d3.geoPath().projection(projection);
+    const g = svg.append("g");
 
-            // Ocean
-            svg.append("circle")
-                .attr("cx", width / 2)
-                .attr("cy", height / 2)
-                .attr("r", projection.scale())
-                .attr("fill", "rgba(10, 10, 10, 0.5)")
-                .attr("stroke", "rgba(255, 255, 255, 0.05)");
-
-            const graticule = d3.geoGraticule();
-            svg.append("path")
-                .datum(graticule)
-                .attr("class", "graticule")
-                .attr("d", path)
-                .attr("fill", "none")
-                .attr("stroke", "rgba(255, 255, 255, 0.05)")
-                .attr("stroke-width", 0.5);
-
-            const g = svg.append("g");
-
-            // Load low-res world map for the globe
-            d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(world => {
-                const countries = topojson.feature(world, world.objects.countries).features;
-
-                // Fix South America bug: Remove French Guiana from France's MultiPolygon
-                const france = countries.find(c => String(c.id).padStart(3, '0') === "250");
-                if (france && france.geometry && france.geometry.type === "MultiPolygon") {
-                    france.geometry.coordinates = france.geometry.coordinates.filter(polygon => {
-                        const lon = polygon[0][0][0];
-                        const lat = polygon[0][0][1];
-                        // Keep polygons in mainland Europe approximately
-                        return lon > -10 && lon < 20 && lat > 35;
-                    });
-                }
-
-                g.selectAll("path")
-                    .data(countries)
-                    .join("path")
-                    .attr("d", path)
-                    .attr("class", d => {
-                        const id = String(d.id).padStart(3, '0');
-                        if (id === usaGlobeId || id === canadaGlobeId) {
-                            return "globe-feature globe-highlight";
-                        } else if (europeGlobeIds.includes(id)) {
-                            return "globe-feature globe-highlight europe-group";
-                        } else if (latamGlobeIds.includes(id)) {
-                            return "globe-feature globe-highlight latam-group";
-                        }
-                        return "globe-feature";
-                    })
-                    .on("click", (event, d) => {
-                        const id = String(d.id).padStart(3, '0');
-                        if (id === usaGlobeId) startQuiz('usa');
-                        else if (id === canadaGlobeId) startQuiz('canada');
-                        else if (europeGlobeIds.includes(id)) startQuiz('europe');
-                        else if (latamGlobeIds.includes(id)) startQuiz('latam');
-                    })
-                    .on("mouseover", function(event, d) {
-                        const id = String(d.id).padStart(3, '0');
-                        if (europeGlobeIds.includes(id)) {
-                            d3.selectAll(".europe-group").classed("hovered", true);
-                        } else if (latamGlobeIds.includes(id)) {
-                            d3.selectAll(".latam-group").classed("hovered", true);
-                        } else if (id === usaGlobeId || id === canadaGlobeId) {
-                            d3.select(this).classed("hovered", true);
-                        }
-                    })
-                    .on("mouseout", function(event, d) {
-                        const id = String(d.id).padStart(3, '0');
-                        if (europeGlobeIds.includes(id)) {
-                            d3.selectAll(".europe-group").classed("hovered", false);
-                        } else if (latamGlobeIds.includes(id)) {
-                            d3.selectAll(".latam-group").classed("hovered", false);
-                        } else if (id === usaGlobeId || id === canadaGlobeId) {
-                            d3.select(this).classed("hovered", false);
-                        }
-                    });
-
-                // Auto rotation
-                let timer = d3.timer(function(elapsed) {
-                    projection.rotate([elapsed * 0.01, -20]);
-                    g.selectAll("path").attr("d", path);
-                });
-
-                // Drag interaction
-                const drag = d3.drag()
-                    .on("start", () => timer.stop())
-                    .on("drag", (event) => {
-                        const rotate = projection.rotate();
-                        const k = 75 / projection.scale();
-                        projection.rotate([
-                            rotate[0] + event.dx * k,
-                            rotate[1] - event.dy * k
-                        ]);
-                        g.selectAll("path").attr("d", path);
-                    });
-
-                svg.call(drag);
+    d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(world => {
+        const countries = topojson.feature(world, world.objects.countries).features;
+        const france = countries.find(c => String(c.id).padStart(3, '0') === "250");
+        if (france && france.geometry && france.geometry.type === "MultiPolygon") {
+            france.geometry.coordinates = france.geometry.coordinates.filter(polygon => {
+                const lon = polygon[0][0][0];
+                const lat = polygon[0][0][1];
+                return lon > -10 && lon < 20 && lat > 35;
             });
         }
 
-        function goHome() {
-            quizView.classList.add('opacity-0');
-            setTimeout(() => {
-                quizView.classList.add('hidden');
-                homeView.classList.remove('hidden');
-                // Force reflow
-                void homeView.offsetWidth;
-                homeView.classList.remove('opacity-0');
-                closeForm();
-            }, 300);
-        }
-
-        function startQuiz(region) {
-            currentRegion = region;
-            score = 0;
-            answeredSet.clear();
-            document.getElementById('score-display').textContent = '0';
-            
-            homeView.classList.add('opacity-0');
-            setTimeout(() => {
-                homeView.classList.add('hidden');
-                quizView.classList.remove('hidden');
-                void quizView.offsetWidth; // Force reflow
-                quizView.classList.remove('opacity-0');
-                
-                setupQuizRegion();
-            }, 300);
-        }
-
-        function setupQuizRegion() {
-            // Remove previous map
-            d3.select("#map-container").selectAll("svg").remove();
-            
-            let title = "";
-            let legendHtml = "";
-            
-            if (currentRegion === 'usa') {
-                title = "United States";
-                activeDataMap = stateData;
-                activeAliases = usaAliases;
-                totalFeatures = Object.keys(stateData).length;
-                legendHtml = Object.entries(usaRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
-                renderUSA();
-            } else if (currentRegion === 'canada') {
-                title = "Canada";
-                activeDataMap = provinceData;
-                activeAliases = {};
-                totalFeatures = Object.keys(provinceData).length;
-                legendHtml = Object.entries(canadaRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
-                renderCanada();
-            } else if (currentRegion === 'europe') {
-                title = "Europe";
-                activeDataMap = countryData;
-                activeAliases = euAliases;
-                totalFeatures = Object.keys(countryData).length;
-                legendHtml = Object.entries(euRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
-                renderEurope();
-            } else if (currentRegion === 'latam') {
-                title = "South & Central America";
-                activeDataMap = latamData;
-                activeAliases = latamAliases;
-                totalFeatures = Object.keys(latamData).length;
-                legendHtml = Object.entries(latamRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
-                renderLatam();
-            }
-
-            document.getElementById('quiz-title').textContent = title;
-            document.getElementById('legend-container').innerHTML = legendHtml;
-            document.getElementById('score-total').textContent = `/ ${totalFeatures}`;
-        }
-
-        function renderUSA() {
-            const width = 975, height = 610;
-            const svg = createMapSvg(width, height);
-            const path = d3.geoPath();
-
-            d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json").then(us => {
-                const states = topojson.feature(us, us.objects.states).features;
-
-                // Draw Features
-                svg.append("g").selectAll("path")
-                    .data(states)
-                    .join("path")
-                    .attr("class", "map-feature")
-                    .attr("data-id", d => d.id.padStart(2, '0'))
-                    .attr("d", path)
-                    .attr("fill", d => {
-                        const id = d.id.padStart(2, '0');
-                        return stateData[id] ? usaRegionColors[stateData[id].region] : "rgba(255,255,255,0.1)";
-                    })
-                    .call(attachInteractions);
-
-                // Add internal boundaries mesh for extra clarity
-                svg.append("path")
-                    .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
-                    .attr("fill", "none")
-                    .attr("stroke", "rgba(255, 255, 255, 0.4)")
-                    .attr("stroke-width", 1)
-                    .attr("stroke-linejoin", "round")
-                    .attr("pointer-events", "none");
-
-                // Add Labels
-                svg.append("g").attr("class", "labels-group").selectAll("text")
-                    .data(states)
-                    .join("text")
-                    .attr("class", d => {
-                        const abbr = stateData[d.id.padStart(2, '0')]?.abbr || "";
-                        return ["CT", "RI", "DE", "MD", "NJ", "MA", "NH", "VT"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
-                    })
-                    .attr("transform", d => {
-                        const centroid = path.centroid(d);
-                        const id = d.id.padStart(2, '0');
-                        const abbr = stateData[id]?.abbr || "";
-                        let x = centroid[0], y = centroid[1];
-                        if (abbr === "FL") x += 15;
-                        if (abbr === "MI") { x += 10; y += 20; }
-                        if (abbr === "LA") x -= 10;
-                        if (abbr === "ID") y += 15;
-                        if (abbr === "CA") { x -= 10; y += 10;}
-                        if (abbr === "AK") y -= 10;
-                        if (abbr === "HI") x += 10;
-                        if (isNaN(x) || isNaN(y)) return `translate(-1000,-1000)`;
-                        return `translate(${x},${y})`;
-                    })
-                    .attr("dy", ".35em")
-                    .attr("data-id", d => d.id.padStart(2, '0'))
-                    .text(d => stateData[d.id.padStart(2, '0')]?.abbr || "");
-
-                drawCompass(svg, 900, 520);
+        g.selectAll("path")
+            .data(countries)
+            .join("path")
+            .attr("d", path)
+            .attr("class", d => {
+                const id = String(d.id).padStart(3, '0');
+                if (id === usaGlobeId || id === canadaGlobeId) {
+                    return "globe-feature globe-highlight";
+                } else if (europeGlobeIds.includes(id)) {
+                    return "globe-feature globe-highlight europe-group";
+                } else if (latamGlobeIds.includes(id)) {
+                    return "globe-feature globe-highlight latam-group";
+                }
+                return "globe-feature";
+            })
+            .on("click", (event, d) => {
+                const id = String(d.id).padStart(3, '0');
+                if (id === usaGlobeId) startQuiz('usa');
+                else if (id === canadaGlobeId) startQuiz('canada');
+                else if (europeGlobeIds.includes(id)) startQuiz('europe');
+                else if (latamGlobeIds.includes(id)) startQuiz('latam');
+            })
+            .on("mouseover", function(event, d) {
+                const id = String(d.id).padStart(3, '0');
+                if (europeGlobeIds.includes(id)) {
+                    d3.selectAll(".europe-group").classed("hovered", true);
+                } else if (latamGlobeIds.includes(id)) {
+                    d3.selectAll(".latam-group").classed("hovered", true);
+                } else if (id === usaGlobeId || id === canadaGlobeId) {
+                    d3.select(this).classed("hovered", true);
+                }
+            })
+            .on("mouseout", function(event, d) {
+                const id = String(d.id).padStart(3, '0');
+                if (europeGlobeIds.includes(id)) {
+                    d3.selectAll(".europe-group").classed("hovered", false);
+                } else if (latamGlobeIds.includes(id)) {
+                    d3.selectAll(".latam-group").classed("hovered", false);
+                } else if (id === usaGlobeId || id === canadaGlobeId) {
+                    d3.select(this).classed("hovered", false);
+                }
             });
-        }
 
-        function renderCanada() {
-            const width = 975, height = 610;
-            const svg = createMapSvg(width, height);
-            
-            const projection = d3.geoConicConformal().rotate([96, 0]).center([0, 62]).parallels([49, 77]).scale(700).translate([width / 2, height / 2]);
-            const path = d3.geoPath().projection(projection);
-
-            d3.json("https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/canada.geojson").then(canada => {
-                const provinces = canada.features;
-
-                svg.append("g").selectAll("path")
-                    .data(provinces)
-                    .join("path")
-                    .attr("class", "map-feature")
-                    .attr("data-id", d => getCanadaId(d))
-                    .attr("d", path)
-                    .attr("fill", d => {
-                        let name = getCanadaId(d);
-                        return provinceData[name] ? canadaRegionColors[provinceData[name].region] : "rgba(255,255,255,0.1)";
-                    })
-                    .call(attachInteractions);
-
-                svg.append("g").attr("class", "labels-group").selectAll("text")
-                    .data(provinces)
-                    .join("text")
-                    .attr("class", d => {
-                        let name = getCanadaId(d);
-                        const abbr = provinceData[name]?.abbr || "";
-                        return ["PE", "NS", "NB"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
-                    })
-                    .attr("transform", d => {
-                        const centroid = path.centroid(d);
-                        let name = getCanadaId(d);
-                        const abbr = provinceData[name]?.abbr || "";
-                        let x = centroid[0], y = centroid[1];
-                        
-                        if (abbr === "NU") { x -= 20; y += 40; }
-                        if (abbr === "NT") { x += 30; y += 30; }
-                        if (abbr === "NL") { x += 25; y += 15; }
-                        if (abbr === "BC") { x -= 10; y -= 10; }
-                        if (abbr === "ON") { x -= 15; y += 30; }
-                        if (abbr === "QC") y += 30;
-                        if (abbr === "PE") x += 5;
-                        
-                        if (isNaN(x) || isNaN(y)) return `translate(-1000,-1000)`;
-                        return `translate(${x},${y})`;
-                    })
-                    .attr("dy", ".35em")
-                    .attr("data-id", d => getCanadaId(d))
-                    .text(d => {
-                        let name = getCanadaId(d);
-                        return provinceData[name]?.abbr || "";
-                    });
-
-                drawCompass(svg, 900, 520);
-            });
-        }
-
-        function renderEurope() {
-            const width = 975, height = 650;
-            const svg = createMapSvg(width, height);
-            
-            const projection = d3.geoMercator().center([12, 51]).scale(620).translate([width / 2, height / 2]);
-            const path = d3.geoPath().projection(projection);
-
-            Promise.all([
-                d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json"),
-                d3.json("https://bost.ocks.org/mike/map/uk.json")
-            ]).then(([world, uk]) => {
-                let countries = topojson.feature(world, world.objects.countries).features;
-                countries = countries.filter(d => String(d.id).padStart(3, '0') !== "826"); // Remove UK
-                
-                // Filter out French Guiana from France in 50m data
-                const france = countries.find(c => String(c.id).padStart(3, '0') === "250");
-                if (france && france.geometry && france.geometry.type === "MultiPolygon") {
-                    france.geometry.coordinates = france.geometry.coordinates.filter(polygon => {
-                        const lon = polygon[0][0][0];
-                        const lat = polygon[0][0][1];
-                        return lon > -10 && lon < 30 && lat > 35;
-                    });
-                }
-
-                const ukSubunits = topojson.feature(uk, uk.objects.subunits).features;
-                const ukCountries = ukSubunits.filter(d => d.id !== "IRL");
-                countries = countries.concat(ukCountries);
-
-                // Draw Features
-                svg.append("g").selectAll("path")
-                    .data(countries)
-                    .join("path")
-                    .attr("data-id", d => String(d.id).padStart(3, '0'))
-                    .attr("class", d => {
-                        const id = String(d.id).padStart(3, '0');
-                        return countryData[id] ? "map-feature" : "non-interactive";
-                    })
-                    .attr("d", path)
-                    .attr("fill", d => {
-                        const id = String(d.id).padStart(3, '0');
-                        return countryData[id] ? euRegionColors[countryData[id].region] : "rgba(255,255,255,0.05)";
-                    })
-                    .call(attachInteractions);
-
-                // Add internal boundaries mesh for extra clarity
-                svg.append("path")
-                    .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
-                    .attr("fill", "none")
-                    .attr("stroke", "rgba(255, 255, 255, 0.3)")
-                    .attr("stroke-width", 0.5)
-                    .attr("stroke-linejoin", "round")
-                    .attr("pointer-events", "none");
-
-                // Draw Labels
-                svg.append("g").attr("class", "labels-group").selectAll("text")
-                    .data(countries.filter(d => {
-                        const id = String(d.id).padStart(3, '0');
-                        return countryData[id] && !microstates.includes(id);
-                    }))
-                    .join("text")
-                    .attr("class", d => {
-                        const abbr = countryData[String(d.id).padStart(3, '0')].abbr;
-                        return ["CY", "ME", "MK", "SI", "XK", "WLS", "NIR"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
-                    })
-                    .attr("transform", d => {
-                        const id = String(d.id).padStart(3, '0');
-                        const abbr = countryData[id].abbr;
-                        let point = euCentroids[abbr] ? projection(euCentroids[abbr]) : path.centroid(d);
-                        if (isNaN(point[0]) || isNaN(point[1])) return `translate(-1000,-1000)`;
-                        return `translate(${point[0]},${point[1]})`;
-                    })
-                    .attr("dy", ".35em")
-                    .attr("data-id", d => String(d.id).padStart(3, '0'))
-                    .text(d => countryData[String(d.id).padStart(3, '0')].abbr);
-
-                // Microstate Pins
-                svg.append("g").attr("class", "pins-group").selectAll("g")
-                    .data(countries.filter(d => microstates.includes(String(d.id).padStart(3, '0'))))
-                    .join("g")
-                    .attr("class", "pin map-feature")
-                    .attr("data-id", d => String(d.id).padStart(3, '0'))
-                    .attr("transform", d => {
-                        const id = String(d.id).padStart(3, '0');
-                        const abbr = countryData[id].abbr;
-                        let point = euCentroids[abbr] ? projection(euCentroids[abbr]) : path.centroid(d);
-                        return `translate(${point[0]},${point[1]})`;
-                    })
-                    .call(attachInteractions)
-                    .call(g => {
-                        const visual = g.append("g").attr("class", "pin-visual");
-                        visual.append("ellipse").attr("cx", 0).attr("cy", 0).attr("rx", 4).attr("ry", 2).attr("fill", "rgba(0,0,0,0.5)");
-                        visual.append("path")
-                            .attr("d", "M 0 0 C -6 -9 -12 -16 -12 -24 C -12 -30.6 -6.6 -36 0 -36 C 6.6 -36 12 -30.6 12 -24 C 12 -16 6 -9 0 0 Z")
-                            .attr("fill", "#6366f1")
-                            .attr("stroke", "#1e293b").attr("stroke-width", 1);
-                        visual.append("circle").attr("cx", 0).attr("cy", -24).attr("r", 4).attr("fill", "#ffffff");
-                    });
-
-                drawCompass(svg, 900, 560);
-            });
-        }
-
-        function renderLatam() {
-            const width = 975, height = 650;
-            const svg = createMapSvg(width, height);
-            
-            const projection = d3.geoMercator().center([-75, -15]).scale(280).translate([width / 2, height / 2]);
-            const path = d3.geoPath().projection(projection);
-
-            d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json").then(world => {
-                let countries = topojson.feature(world, world.objects.countries).features;
-
-                // Draw Features
-                svg.append("g").selectAll("path")
-                    .data(countries)
-                    .join("path")
-                    .attr("data-id", d => String(d.id).padStart(3, '0'))
-                    .attr("class", d => {
-                        const id = String(d.id).padStart(3, '0');
-                        return latamData[id] ? "map-feature" : "non-interactive";
-                    })
-                    .attr("d", path)
-                    .attr("fill", d => {
-                        const id = String(d.id).padStart(3, '0');
-                        return latamData[id] ? latamRegionColors[latamData[id].region] : "rgba(255,255,255,0.05)";
-                    })
-                    .call(attachInteractions);
-
-                // Add internal boundaries mesh
-                svg.append("path")
-                    .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
-                    .attr("fill", "none")
-                    .attr("stroke", "rgba(255, 255, 255, 0.3)")
-                    .attr("stroke-width", 0.5)
-                    .attr("stroke-linejoin", "round")
-                    .attr("pointer-events", "none");
-
-                // Draw Labels
-                svg.append("g").attr("class", "labels-group").selectAll("text")
-                    .data(countries.filter(d => {
-                        const id = String(d.id).padStart(3, '0');
-                        return latamData[id];
-                    }))
-                    .join("text")
-                    .attr("class", d => {
-                        const abbr = latamData[String(d.id).padStart(3, '0')].abbr;
-                        return ["BZ", "CR", "SV", "GT", "HN", "NI", "PA", "GY", "SR", "HT", "DO", "JM", "BS"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
-                    })
-                    .attr("transform", d => {
-                        const id = String(d.id).padStart(3, '0');
-                        let point = path.centroid(d);
-                        
-                        // Manual adjustments
-                        if (id === "152") { // Chile
-                            point[0] -= 15;
-                            point[1] += 30;
-                        }
-                        if (id === "032") { // Argentina
-                            point[0] -= 10;
-                        }
-
-                        if (isNaN(point[0]) || isNaN(point[1])) return `translate(-1000,-1000)`;
-                        return `translate(${point[0]},${point[1]})`;
-                    })
-                    .attr("dy", ".35em")
-                    .attr("data-id", d => String(d.id).padStart(3, '0'))
-                    .text(d => latamData[String(d.id).padStart(3, '0')].abbr);
-
-                drawCompass(svg, 900, 560);
-            });
-        }
-
-        function createMapSvg(width, height) {
-            return d3.select("#map-container").insert("svg", ":first-child")
-                .attr("viewBox", `0 0 ${width} ${height}`)
-                .attr("preserveAspectRatio", "xMidYMid meet");
-        }
-
-        function drawCompass(svg, x, y) {
-            const compass = svg.append("g").attr("transform", `translate(${x}, ${y}) scale(1.1)`);
-            
-            // Minimalist skeleton star (lines only)
-            compass.append("line").attr("x1", 0).attr("y1", -30).attr("x2", 0).attr("y2", 30)
-                .attr("stroke", "rgba(255,255,255,0.25)").attr("stroke-width", 1.5);
-            compass.append("line").attr("x1", -30).attr("y1", 0).attr("x2", 30).attr("y2", 0)
-                .attr("stroke", "rgba(255,255,255,0.25)").attr("stroke-width", 1.5);
-            
-            // Tiny center dot
-            compass.append("circle").attr("cx", 0).attr("cy", 0).attr("r", 1.5).attr("fill", "rgba(255,255,255,0.5)");
-            
-            const style = "font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 400; fill: rgba(255,255,255,0.4); letter-spacing: 1px;";
-            compass.append("text").attr("x", 0).attr("y", -38).style("text-anchor", "middle").text("N").attr("style", style);
-            compass.append("text").attr("x", 0).attr("y", 46).style("text-anchor", "middle").text("S").attr("style", style);
-            compass.append("text").attr("x", 38).attr("y", 4).style("text-anchor", "start").text("E").attr("style", style);
-            compass.append("text").attr("x", -38).attr("y", 4).style("text-anchor", "end").text("W").attr("style", style);
-        }
-
-        function attachInteractions(selection) {
-            selection
-                .on("mouseover", function(event, d) {
-                    // Ignore non-interactive background elements
-                    if(d3.select(this).classed("non-interactive")) return;
-                    
-                    let id = d3.select(this).attr("data-id");
-                    if (!id) return;
-                    
-                    if (d3.select(this).classed("answered")) return; // Don't highlight answered
-
-                    const info = activeDataMap[id];
-                    if (info) {
-                        tooltip.transition().duration(200).style("opacity", 1);
-                        tooltip.html(info.abbr).style("left", (event.pageX) + "px").style("top", (event.pageY - 15) + "px");
-                        
-                        // Raise element to front (unless it's a pin, which is already in a top group)
-                        if(!d3.select(this).classed("pin")){
-                            d3.select(this).raise();
-                        }
-                    }
-                })
-                .on("mousemove", function(event) {
-                    tooltip.style("left", (event.pageX) + "px").style("top", (event.pageY - 15) + "px");
-                })
-                .on("mouseout", function() {
-                    tooltip.transition().duration(200).style("opacity", 0);
-                    // Labels should always stay on top
-                    d3.select(".labels-group").raise();
-                    d3.select(".pins-group").raise();
-                })
-                .on("click", function(event, d) {
-                    if(d3.select(this).classed("non-interactive") || d3.select(this).classed("answered")) return;
-                    
-                    let id = d3.select(this).attr("data-id");
-                    const info = activeDataMap[id];
-                    if (!info) return;
-
-                    if (activeFeature === this) {
-                        closeForm();
-                        return;
-                    }
-
-                    // Reset previous active
-                    d3.selectAll(".map-feature.active").classed("active", false);
-                    
-                    // Set new active
-                    activeFeature = this;
-                    d3.selectAll(`.map-feature[data-id="${id}"]`).classed("active", true).raise();
-                    
-                    // Keep labels and pins above everything
-                    d3.select(".labels-group").raise();
-                    d3.select(".pins-group").raise();
-
-                    openForm(id, info);
-                });
-        }
-
-        function openForm(id, info) {
-            document.getElementById('current-id').value = id;
-            
-            let flagUrl = "";
-            if (currentRegion === 'usa') {
-                flagUrl = `https://flagcdn.com/w80/us-${info.abbr.toLowerCase()}.png`;
-            } else if (currentRegion === 'europe') {
-                let code = info.abbr.toLowerCase();
-                if (code === 'eng') code = 'gb-eng';
-                else if (code === 'sct') code = 'gb-sct';
-                else if (code === 'wls') code = 'gb-wls';
-                else if (code === 'nir') code = 'gb-nir';
-                flagUrl = `https://flagcdn.com/w80/${code}.png`;
-            } else if (currentRegion === 'latam') {
-                flagUrl = `https://flagcdn.com/w80/${info.abbr.toLowerCase()}.png`;
-            } else if (currentRegion === 'canada') {
-                const caFlags = {
-                    "AB": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Flag_of_Alberta.svg",
-                    "BC": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Flag_of_British_Columbia.svg",
-                    "MB": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Flag_of_Manitoba.svg",
-                    "NB": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Flag_of_New_Brunswick.svg",
-                    "NL": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Flag_of_Newfoundland_and_Labrador.svg",
-                    "NS": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Flag_of_Nova_Scotia.svg",
-                    "ON": "https://upload.wikimedia.org/wikipedia/commons/8/88/Flag_of_Ontario.svg",
-                    "PE": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Flag_of_Prince_Edward_Island.svg",
-                    "QC": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Flag_of_Quebec.svg",
-                    "SK": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Flag_of_Saskatchewan.svg",
-                    "NT": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Flag_of_the_Northwest_Territories.svg",
-                    "NU": "https://upload.wikimedia.org/wikipedia/commons/9/90/Flag_of_Nunavut.svg",
-                    "YT": "https://upload.wikimedia.org/wikipedia/commons/6/69/Flag_of_Yukon.svg"
-                };
-                flagUrl = caFlags[info.abbr];
-            }
-
-            const flagImg = document.getElementById('selected-flag');
-            const abbrSpan = document.getElementById('selected-abbr');
-
-            if (flagUrl) {
-                flagImg.src = flagUrl;
-                flagImg.classList.remove('hidden');
-                abbrSpan.classList.add('hidden');
-            } else {
-                flagImg.classList.add('hidden');
-                abbrSpan.classList.remove('hidden');
-                abbrSpan.textContent = info.abbr;
-            }
-            
-            // Handle Sports Hints
-            const hintContainer = document.getElementById('hint-container');
-            const regionHint = document.getElementById('region-hint');
-            if (info.hint) {
-                regionHint.innerHTML = info.hint;
-                hintContainer.classList.remove('hidden');
-            } else {
-                hintContainer.classList.add('hidden');
-            }
-            
-            const form = document.getElementById('quiz-form');
-            form.reset();
-            const feedbackMsg = document.getElementById('feedback-message');
-            feedbackMsg.className = "text-sm font-semibold text-center hidden py-2 rounded-lg";
-            
-            formCard.classList.remove('hidden');
-            // Small delay to allow block render before transition
-            setTimeout(() => {
-                formCard.classList.remove('opacity-0', 'scale-95');
-                formCard.classList.add('opacity-100', 'scale-100');
-            }, 10);
-
-            document.getElementById('name-input').focus();
-        }
-
-        function closeForm() {
-            d3.selectAll(".map-feature.active").classed("active", false);
-            activeFeature = null;
-            
-            formCard.classList.remove('opacity-100', 'scale-100');
-            formCard.classList.add('opacity-0', 'scale-95');
-            setTimeout(() => {
-                formCard.classList.add('hidden');
-            }, 300);
-        }
-
-        function normalizeString(str) {
-            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
-        }
-
-        // Levenshtein distance for typo detection
-        function levenshtein(a, b) {
-            if (a.length === 0) return b.length;
-            if (b.length === 0) return a.length;
-            const matrix = [];
-            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-            for (let i = 1; i <= b.length; i++) {
-                for (let j = 1; j <= a.length; j++) {
-                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                        matrix[i][j] = matrix[i - 1][j - 1];
-                    } else {
-                        matrix[i][j] = Math.min(
-                            matrix[i - 1][j - 1] + 1, 
-                            matrix[i][j - 1] + 1,     
-                            matrix[i - 1][j] + 1      
-                        );
-                    }
-                }
-            }
-            return matrix[b.length][a.length];
-        }
-
-        document.getElementById('quiz-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const id = document.getElementById('current-id').value;
-            const info = activeDataMap[id];
-            
-            const inputName = normalizeString(document.getElementById('name-input').value);
-            const inputCapital = normalizeString(document.getElementById('capital-input').value);
-            
-            const realNameStr = info.name || id;
-            const realName = normalizeString(realNameStr);
-            const realCapitalStr = info.capital;
-            const realCapital = normalizeString(realCapitalStr);
-            
-            let nameCorrect = (inputName === realName);
-            if (!nameCorrect && activeAliases[id]) {
-                nameCorrect = activeAliases[id].some(alias => normalizeString(alias) === inputName);
-            }
-            const capitalCorrect = (inputCapital === realCapital);
-
-            const feedbackMsg = document.getElementById('feedback-message');
-            feedbackMsg.className = "text-sm font-semibold text-center py-2 rounded-lg"; // reset classes
-
-            if (nameCorrect && capitalCorrect) {
-                // Correct
-                if (!answeredSet.has(id)) {
-                    answeredSet.add(id);
-                    score++;
-                    document.getElementById('score-display').textContent = score;
-                    
-                    // Turn feature(s) grey
-                    d3.selectAll(`.map-feature[data-id="${id}"]`).classed("answered", true);
-                    d3.selectAll(`text[data-id="${id}"]`).classed("answered-label", true);
-                }
-                feedbackMsg.classList.add('hidden');
-                closeForm();
-            } else {
-                feedbackMsg.classList.remove('hidden');
-                
-                // Check Typos
-                const nameDist = levenshtein(inputName, realName);
-                const capDist = levenshtein(inputCapital, realCapital);
-                
-                const nameTypo = !nameCorrect && (nameDist <= 2 && realName.length > 3);
-                const capTypo = !capitalCorrect && (capDist <= 2 && realCapital.length > 3);
-                
-                let isTypo = false;
-                let msg = "Try again!";
-                
-                if (nameTypo && capTypo) {
-                    msg = `Almost! It's ${realNameStr} and ${realCapitalStr}.`;
-                    isTypo = true;
-                } else if (nameTypo && capitalCorrect) {
-                    msg = `Capital correct! Almost on name, it's ${realNameStr}.`;
-                    isTypo = true;
-                } else if (nameCorrect && capTypo) {
-                    msg = `Name correct! Almost on capital, it's ${realCapitalStr}.`;
-                    isTypo = true;
-                } else if (nameTypo) {
-                    msg = `Almost on name! It's ${realNameStr}. Try again for capital.`;
-                    isTypo = true;
-                } else if (capTypo) {
-                    msg = `Almost on capital! It's ${realCapitalStr}. Try again for name.`;
-                    isTypo = true;
-                }
-
-                if (isTypo) {
-                    feedbackMsg.textContent = msg;
-                    feedbackMsg.classList.add("bg-yellow-500/20", "text-yellow-300", "border", "border-yellow-500/30");
-                } else {
-                    feedbackMsg.textContent = "Try again!";
-                    feedbackMsg.classList.add("bg-red-500/20", "text-red-300", "border", "border-red-500/30");
-                    // Shake animation for complete error
-                    formCard.classList.add('translate-x-1');
-                    setTimeout(() => formCard.classList.remove('translate-x-1'), 100);
-                    setTimeout(() => formCard.classList.add('-translate-x-1'), 200);
-                    setTimeout(() => formCard.classList.remove('-translate-x-1'), 300);
-                }
-            }
+        let timer = d3.timer(function(elapsed) {
+            projection.rotate([elapsed * 0.01, -20]);
+            g.selectAll("path").attr("d", path);
         });
 
-        // Initialize App
-        initGlobe();
+        const drag = d3.drag()
+            .on("start", () => timer.stop())
+            .on("drag", (event) => {
+                const rotate = projection.rotate();
+                const k = 75 / projection.scale();
+                projection.rotate([
+                    rotate[0] + event.dx * k,
+                    rotate[1] - event.dy * k
+                ]);
+                g.selectAll("path").attr("d", path);
+            });
+        svg.call(drag);
+    });
+}
 
-    </script>
+function goHome() {
+    quizView.classList.add('opacity-0');
+    setTimeout(() => {
+        quizView.classList.add('hidden');
+        homeView.classList.remove('hidden');
+        void homeView.offsetWidth;
+        homeView.classList.remove('opacity-0');
+        closeForm();
+    }, 300);
+}
+
+function startQuiz(region) {
+    currentRegion = region;
+    score = 0;
+    answeredSet.clear();
+    document.getElementById('score-display').textContent = '0';
+    homeView.classList.add('opacity-0');
+    setTimeout(() => {
+        homeView.classList.add('hidden');
+        quizView.classList.remove('hidden');
+        void quizView.offsetWidth;
+        quizView.classList.remove('opacity-0');
+        setupQuizRegion();
+    }, 300);
+}
+
+function setupQuizRegion() {
+    d3.select("#map-container").selectAll("svg").remove();
+    let title = "";
+    let legendHtml = "";
+    if (currentRegion === 'usa') {
+        title = "United States";
+        activeDataMap = stateData;
+        activeAliases = usaAliases;
+        totalFeatures = Object.keys(stateData).length;
+        legendHtml = Object.entries(usaRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join("");
+        renderUSA();
+    } else if (currentRegion === 'canada') {
+        title = "Canada";
+        activeDataMap = provinceData;
+        activeAliases = {};
+        totalFeatures = Object.keys(provinceData).length;
+        legendHtml = Object.entries(canadaRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join("");
+        renderCanada();
+    } else if (currentRegion === 'europe') {
+        title = "Europe";
+        activeDataMap = countryData;
+        activeAliases = euAliases;
+        totalFeatures = Object.keys(countryData).length;
+        legendHtml = Object.entries(euRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join("");
+        renderEurope();
+    } else if (currentRegion === 'latam') {
+        title = "South & Central America";
+        activeDataMap = latamData;
+        activeAliases = latamAliases;
+        totalFeatures = Object.keys(latamData).length;
+        legendHtml = Object.entries(latamRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join("");
+        renderLatam();
+    }
+    document.getElementById('quiz-title').textContent = title;
+    document.getElementById('legend-container').innerHTML = legendHtml;
+    document.getElementById('score-total').textContent = `/ ${totalFeatures}`;
+}
+
+function renderUSA() {
+    const width = 975, height = 610;
+    const svg = createMapSvg(width, height);
+    const path = d3.geoPath();
+    d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json").then(us => {
+        const states = topojson.feature(us, us.objects.states).features;
+        svg.append("g").selectAll("path")
+            .data(states)
+            .join("path")
+            .attr("class", "map-feature")
+            .attr("data-id", d => String(d.id).padStart(2, '0'))
+            .attr("d", path)
+            .attr("fill", d => {
+                const id = String(d.id).padStart(2, '0');
+                return stateData[id] ? usaRegionColors[stateData[id].region] : "rgba(255,255,255,0.1)";
+            })
+            .call(attachInteractions);
+
+        svg.append("path")
+            .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
+            .attr("fill", "none")
+            .attr("stroke", "rgba(255, 255, 255, 0.4)")
+            .attr("stroke-width", 1)
+            .attr("stroke-linejoin", "round")
+            .attr("pointer-events", "none");
+
+        svg.append("g").attr("class", "labels-group").selectAll("text")
+            .data(states)
+            .join("text")
+            .attr("class", d => {
+                const abbr = stateData[String(d.id).padStart(2, '0')]?.abbr || "";
+                return ["CT", "RI", "DE", "MD", "NJ", "MA", "NH", "VT"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
+            })
+            .attr("transform", d => {
+                const centroid = path.centroid(d);
+                let x = centroid[0], y = centroid[1];
+                const abbr = stateData[String(d.id).padStart(2, '0')]?.abbr || "";
+                if (abbr === "FL") x += 15;
+                if (abbr === "MI") { x += 10; y += 20; }
+                if (abbr === "LA") x -= 10;
+                if (abbr === "ID") y += 15;
+                if (abbr === "CA") { x -= 10; y += 10; }
+                if (abbr === "AK") y -= 10;
+                if (abbr === "HI") x += 10;
+                if (isNaN(x) || isNaN(y)) return "translate(-1000,-1000)";
+                return `translate(${x},${y})`;
+            })
+            .attr("dy", ".35em")
+            .attr("data-id", d => String(d.id).padStart(2, '0'))
+            .text(d => stateData[String(d.id).padStart(2, '0')]?.abbr || "");
+
+        drawCompass(svg, 900, 520);
+    });
+}
+
+function renderCanada() {
+    const width = 975, height = 610;
+    const svg = createMapSvg(width, height);
+    const projection = d3.geoConicConformal().rotate([96, 0]).center([0, 62]).parallels([49, 77]).scale(700).translate([width / 2, height / 2]);
+    const path = d3.geoPath().projection(projection);
+
+    d3.json("https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/canada.geojson").then(canada => {
+        const provinces = canada.features;
+        svg.append("g").selectAll("path")
+            .data(provinces)
+            .join("path")
+            .attr("class", "map-feature")
+            .attr("data-id", d => getCanadald(d))
+            .attr("d", path)
+            .attr("fill", d => {
+                let name = getCanadald(d);
+                return provinceData[name] ? canadaRegionColors[provinceData[name].region] : "rgba(255,255,255,0.1)";
+            })
+            .call(attachInteractions);
+
+        svg.append("g").attr("class", "labels-group").selectAll("text")
+            .data(provinces)
+            .join("text")
+            .attr("class", d => {
+                let name = getCanadald(d);
+                const abbr = provinceData[name]?.abbr || "";
+                return ["PE", "NS", "NB"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
+            })
+            .attr("transform", d => {
+                const centroid = path.centroid(d);
+                let name = getCanadald(d);
+                const abbr = provinceData[name]?.abbr || "";
+                let x = centroid[0], y = centroid[1];
+                if (abbr === "NU") { x -= 20; y += 40; }
+                if (abbr === "NT") { x += 30; y += 30; }
+                if (abbr === "NL") { x += 25; y += 15; }
+                if (abbr === "BC") { x -= 10; y -= 10; }
+                if (abbr === "ON") { x -= 15; y += 30; }
+                if (abbr === "QC") y += 30;
+                if (abbr === "PE") x += 5;
+                if (isNaN(x) || isNaN(y)) return "translate(-1000,-1000)";
+                return `translate(${x},${y})`;
+            })
+            .attr("dy", ".35em")
+            .attr("data-id", d => getCanadald(d))
+            .text(d => {
+                let name = getCanadald(d);
+                return provinceData[name]?.abbr || "";
+            });
+
+        drawCompass(svg, 900, 520);
+    });
+}
+
+function renderEurope() {
+    const width = 975, height = 650;
+    const svg = createMapSvg(width, height);
+    const projection = d3.geoMercator().center([12, 51]).scale(620).translate([width / 2, height / 2]);
+    const path = d3.geoPath().projection(projection);
+
+    Promise.all([
+        d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json"),
+        d3.json("https://bost.ocks.org/mike/map/uk.json")
+    ]).then(([world, uk]) => {
+        let countries = topojson.feature(world, world.objects.countries).features;
+        countries = countries.filter(d => String(d.id).padStart(3, '0') !== "826");
+        const france = countries.find(c => String(c.id).padStart(3, '0') === "250");
+        if (france && france.geometry && france.geometry.type === "MultiPolygon") {
+            france.geometry.coordinates = france.geometry.coordinates.filter(polygon => {
+                const lon = polygon[0][0][0];
+                const lat = polygon[0][0][1];
+                return lon > -10 && lon < 30 && lat > 35;
+            });
+        }
+        const ukSubunits = topojson.feature(uk, uk.objects.subunits).features;
+        const ukCountries = ukSubunits.filter(d => d.id !== "IRL");
+        countries = countries.concat(ukCountries);
+
+        svg.append("g").selectAll("path")
+            .data(countries)
+            .join("path")
+            .attr("data-id", d => String(d.id).padStart(3, '0'))
+            .attr("class", d => {
+                const id = String(d.id).padStart(3, '0');
+                return countryData[id] ? "map-feature" : "non-interactive";
+            })
+            .attr("d", path)
+            .attr("fill", d => {
+                const id = String(d.id).padStart(3, '0');
+                return countryData[id] ? euRegionColors[countryData[id].region] : "rgba(255,255,255,0.05)";
+            })
+            .call(attachInteractions);
+
+        svg.append("path")
+            .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
+            .attr("fill", "none")
+            .attr("stroke", "rgba(255, 255, 255, 0.3)")
+            .attr("stroke-width", 0.5)
+            .attr("stroke-linejoin", "round")
+            .attr("pointer-events", "none");
+
+        svg.append("g").attr("class", "labels-group").selectAll("text")
+            .data(countries.filter(d => {
+                const id = String(d.id).padStart(3, '0');
+                return countryData[id] && !microstates.includes(id);
+            }))
+            .join("text")
+            .attr("class", d => {
+                const abbr = countryData[String(d.id).padStart(3, '0')].abbr;
+                return ["CY", "ME", "MK", "SI", "XK", "WLS", "NIR"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
+            })
+            .attr("transform", d => {
+                const id = String(d.id).padStart(3, '0');
+                const abbr = countryData[id].abbr;
+                let point = euCentroids[abbr] ? projection(euCentroids[abbr]) : path.centroid(d);
+                if (isNaN(point[0]) || isNaN(point[1])) return "translate(-1000,-1000)";
+                return `translate(${point[0]},${point[1]})`;
+            })
+            .attr("dy", ".35em")
+            .attr("data-id", d => String(d.id).padStart(3, '0'))
+            .text(d => countryData[String(d.id).padStart(3, '0')].abbr);
+
+        svg.append("g").attr("class", "pins-group").selectAll("g")
+            .data(countries.filter(d => microstates.includes(String(d.id).padStart(3, '0'))))
+            .join("g")
+            .attr("class", "pin map-feature")
+            .attr("data-id", d => String(d.id).padStart(3, '0'))
+            .attr("transform", d => {
+                const id = String(d.id).padStart(3, '0');
+                const abbr = countryData[id].abbr;
+                let point = euCentroids[abbr] ? projection(euCentroids[abbr]) : path.centroid(d);
+                return `translate(${point[0]},${point[1]})`;
+            })
+            .call(attachInteractions)
+            .call(g => {
+                const visual = g.append("g").attr("class", "pin-visual");
+                visual.append("ellipse").attr("cx", 0).attr("cy", 0).attr("rx", 4).attr("ry", 2).attr("fill", "rgba(0,0,0,0.5)");
+                visual.append("path")
+                    .attr("d", "M 0 0 C -6 -9 -12 -16 -12 -24 C -12 -30.6 -6.6 -36 0 -36 C 6.6 -36 12 -30.6 12 -24 C 12 -16 6 -9 0 0 Z")
+                    .attr("fill", "#6366f1")
+                    .attr("stroke", "#1e293b").attr("stroke-width", 1);
+                visual.append("circle").attr("cx", 0).attr("cy", -24).attr("r", 4).attr("fill", "#ffffff");
+            });
+
+        drawCompass(svg, 900, 560);
+    });
+}
+
+function renderLatam() {
+    const width = 975, height = 650;
+    const svg = createMapSvg(width, height);
+    const projection = d3.geoMercator().center([-75, -15]).scale(280).translate([width / 2, height / 2]);
+    const path = d3.geoPath().projection(projection);
+
+    d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json").then(world => {
+        let countries = topojson.feature(world, world.objects.countries).features;
+        svg.append("g").selectAll("path")
+            .data(countries)
+            .join("path")
+            .attr("data-id", d => String(d.id).padStart(3, '0'))
+            .attr("class", d => {
+                const id = String(d.id).padStart(3, '0');
+                return latamData[id] ? "map-feature" : "non-interactive";
+            })
+            .attr("d", path)
+            .attr("fill", d => {
+                const id = String(d.id).padStart(3, '0');
+                return latamData[id] ? latamRegionColors[latamData[id].region] : "rgba(255,255,255,0.05)";
+            })
+            .call(attachInteractions);
+
+        svg.append("path")
+            .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
+            .attr("fill", "none")
+            .attr("stroke", "rgba(255, 255, 255, 0.3)")
+            .attr("stroke-width", 0.5)
+            .attr("stroke-linejoin", "round")
+            .attr("pointer-events", "none");
+
+        svg.append("g").attr("class", "labels-group").selectAll("text")
+            .data(countries.filter(d => {
+                const id = String(d.id).padStart(3, '0');
+                return latamData[id];
+            }))
+            .join("text")
+            .attr("class", d => {
+                const abbr = latamData[String(d.id).padStart(3, '0')].abbr;
+                return ["BZ", "CR", "SV", "GT", "HN", "NI", "PA", "GY", "SR", "HT", "DO", "JM", "BS"].includes(abbr) ? "feature-label feature-label-small" : "feature-label";
+            })
+            .attr("transform", d => {
+                const id = String(d.id).padStart(3, '0');
+                let point = path.centroid(d);
+                if (id === "152") { point[0] -= 15; point[1] += 30; }
+                if (id === "032") { point[0] -= 10; }
+                if (isNaN(point[0]) || isNaN(point[1])) return "translate(-1000,-1000)";
+                return `translate(${point[0]},${point[1]})`;
+            })
+            .attr("dy", ".35em")
+            .attr("data-id", d => String(d.id).padStart(3, '0'))
+            .text(d => latamData[String(d.id).padStart(3, '0')].abbr);
+
+        drawCompass(svg, 900, 560);
+    });
+}
+
+function createMapSvg(width, height) {
+    return d3.select("#map-container").insert("svg", ":first-child")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("preserveAspectRatio", "xMidYMid meet");
+}
+
+function drawCompass(svg, x, y) {
+    const compass = svg.append("g").attr("transform", `translate(${x}, ${y}) scale(1.1)`);
+    compass.append("line").attr("x1", 0).attr("y1", -30).attr("x2", 0).attr("y2", 30).attr("stroke", "rgba(255,255,255,0.25)").attr("stroke-width", 1.5);
+    compass.append("line").attr("x1", -30).attr("y1", 0).attr("x2", 30).attr("y2", 0).attr("stroke", "rgba(255,255,255,0.25)").attr("stroke-width", 1.5);
+    compass.append("circle").attr("cx", 0).attr("cy", 0).attr("r", 1.5).attr("fill", "rgba(255,255,255,0.5)");
+    const style = "font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 400; fill: rgba(255,255,255,0.4); letter-spacing: 1px;";
+    compass.append("text").attr("x", 0).attr("y", -38).style("text-anchor", "middle").text("N").attr("style", style);
+    compass.append("text").attr("x", 0).attr("y", 46).style("text-anchor", "middle").text("S").attr("style", style);
+    compass.append("text").attr("x", 38).attr("y", 4).style("text-anchor", "start").text("E").attr("style", style);
+    compass.append("text").attr("x", -38).attr("y", 4).style("text-anchor", "end").text("W").attr("style", style);
+}
+
+function attachInteractions(selection) {
+    selection
+        .on("mouseover", function(event, d) {
+            if (d3.select(this).classed("non-interactive")) return;
+            let id = d3.select(this).attr("data-id");
+            if (!id) return;
+            if (d3.select(this).classed("answered")) return;
+            const info = activeDataMap[id];
+            if (info) {
+                tooltip.transition().duration(200).style("opacity", 1);
+                tooltip.html(info.abbr).style("left", (event.pageX) + "px").style("top", (event.pageY - 15) + "px");
+                if (!d3.select(this).classed("pin")) {
+                    d3.select(this).raise();
+                }
+            }
+        })
+        .on("mousemove", function(event) {
+            tooltip.style("left", (event.pageX) + "px").style("top", (event.pageY - 15) + "px");
+        })
+        .on("mouseout", function() {
+            tooltip.transition().duration(200).style("opacity", 0);
+            d3.select(".labels-group").raise();
+            d3.select(".pins-group").raise();
+        })
+        .on("click", function(event, d) {
+            if (d3.select(this).classed("non-interactive") || d3.select(this).classed("answered")) return;
+            let id = d3.select(this).attr("data-id");
+            const info = activeDataMap[id];
+            if (!info) return;
+            if (activeFeature === this) {
+                closeForm();
+                return;
+            }
+            d3.selectAll(".map-feature.active").classed("active", false);
+            activeFeature = this;
+            d3.selectAll(`.map-feature[data-id="${id}"]`).classed("active", true).raise();
+            d3.select(".labels-group").raise();
+            d3.select(".pins-group").raise();
+            openForm(id, info);
+        });
+}
+
+function openForm(id, info) {
+    document.getElementById('current-id').value = id;
+    let flagUrl = "";
+    if (currentRegion === 'usa') {
+        flagUrl = `https://flagcdn.com/w80/us-${info.abbr.toLowerCase()}.png`;
+    } else if (currentRegion === 'europe') {
+        let code = info.abbr.toLowerCase();
+        if (code === 'eng') code = 'gb-eng';
+        else if (code === 'sct') code = 'gb-sct';
+        else if (code === 'wls') code = 'gb-wls';
+        else if (code === 'nir') code = 'gb-nir';
+        flagUrl = `https://flagcdn.com/w80/${code}.png`;
+    } else if (currentRegion === 'latam') {
+        flagUrl = `https://flagcdn.com/w80/${info.abbr.toLowerCase()}.png`;
+    } else if (currentRegion === 'canada') {
+        const caFlags = {
+            "AB": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Flag_of_Alberta.svg",
+            "BC": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Flag_of_British_Columbia.svg",
+            "MB": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Flag_of_Manitoba.svg",
+            "NB": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Flag_of_New_Brunswick.svg",
+            "NL": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Flag_of_Newfoundland_and_Labrador.svg",
+            "NS": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Flag_of_Nova_Scotia.svg",
+            "ON": "https://upload.wikimedia.org/wikipedia/commons/8/88/Flag_of_Ontario.svg",
+            "PE": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Flag_of_Prince_Edward_Island.svg",
+            "QC": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Flag_of_Quebec.svg",
+            "SK": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Flag_of_Saskatchewan.svg",
+            "NT": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Flag_of_the_Northwest_Territories.svg",
+            "NU": "https://upload.wikimedia.org/wikipedia/commons/9/90/Flag_of_Nunavut.svg",
+            "YT": "https://upload.wikimedia.org/wikipedia/commons/6/69/Flag_of_Yukon.svg"
+        };
+        flagUrl = caFlags[info.abbr];
+    }
+
+    // Populate Left Column (Flag & Hints)
+    const leftContainer = document.getElementById('left-flag-container');
+    let leftHtml = '';
+    if (flagUrl) {
+        leftHtml += `<img src="${flagUrl}" alt="Flag" class="h-9 object-contain drop-shadow-md mb-1">`;
+    }
+    if (info.hint) {
+        leftHtml += info.hint;
+    }
+    if (!leftHtml) {
+        leftHtml = `<span class="text-sm font-bold text-slate-300">${info.abbr}</span>`;
+    }
+    leftContainer.innerHTML = leftHtml;
+
+    // Populate Right Column (Isolated Shape via getBBox)
+    const shapeContainer = document.getElementById('shape-content');
+    const originalPath = document.querySelector(`path.map-feature[data-id="${id}"]`) || document.querySelector(`path[data-id="${id}"]`);
+    if (originalPath) {
+        const pathData = originalPath.getAttribute('d');
+        if (pathData) {
+            shapeContainer.innerHTML = `
+                <svg id="mini-map-${id}" class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]" preserveAspectRatio="xMidYMid meet">
+                    <path d="${pathData}" fill="#3b82f6" stroke="#93c5fd" stroke-width="1.5"/>
+                </svg>
+            `;
+            setTimeout(() => {
+                const miniSvg = document.getElementById(`mini-map-${id}`);
+                if (miniSvg) {
+                    const miniPath = miniSvg.querySelector('path');
+                    if (miniPath) {
+                        try {
+                            const bbox = miniPath.getBBox();
+                            if (bbox && bbox.width > 0 && bbox.height > 0) {
+                                const padding = Math.max(bbox.width, bbox.height) * 0.2;
+                                miniSvg.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${bbox.width + (padding * 2)} ${bbox.height + (padding * 2)}`);
+                            }
+                        } catch(e) {}
+                    }
+                }
+            }, 20);
+        } else {
+            shapeContainer.innerHTML = `<span class="text-xs text-slate-500">${info.abbr}</span>`;
+        }
+    } else {
+        shapeContainer.innerHTML = `<span class="text-xs text-slate-500">${info.abbr}</span>`;
+    }
+
+    const form = document.getElementById('quiz-form');
+    form.reset();
+    feedbackMsg.classList.add('hidden');
+
+    formCard.classList.remove('hidden');
+    setTimeout(() => {
+        formCard.classList.remove('opacity-0', 'scale-95');
+        formCard.classList.add('opacity-100', 'scale-100');
+    }, 10);
+}
+
+function closeForm() {
+    formCard.classList.remove('opacity-100', 'scale-100');
+    formCard.classList.add('opacity-0', 'scale-95');
+    setTimeout(() => {
+        formCard.classList.add('hidden');
+        d3.selectAll(".map-feature.active").classed("active", false);
+        activeFeature = null;
+    }, 300);
+}
+
+document.getElementById('quiz-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = document.getElementById('current-id').value;
+    const info = activeDataMap[id];
+    if (!info) return;
+
+    const nameVal = document.getElementById('name-input').value.trim().toLowerCase();
+    const capitalVal = document.getElementById('capital-input').value.trim().toLowerCase();
+
+    const expectedName = info.name.toLowerCase();
+    const expectedCapital = info.capital.toLowerCase();
+
+    let nameMatched = (nameVal === expectedName);
+    if (!nameMatched && activeAliases && activeAliases[id]) {
+        nameMatched = activeAliases[id].some(alias => alias.toLowerCase() === nameVal);
+    }
+
+    const capitalMatched = (capitalVal === expectedCapital);
+
+    if (nameMatched && capitalMatched) {
+        feedbackMsg.classList.add('hidden');
+        answeredSet.add(id);
+        score++;
+        document.getElementById('score-display').textContent = score;
+
+        d3.selectAll(`.map-feature[data-id="${id}"]`)
+            .classed("answered", true)
+            .classed("active", false);
+
+        d3.selectAll(`.labels-group text[data-id="${id}"]`)
+            .classed("answered-label", true);
+
+        closeForm();
+
+        if (score === totalFeatures) {
+            setTimeout(() => {
+                alert("Parabéns! Você completou todo o desafio desta região!");
+            }, 400);
+        }
+    } else {
+        feedbackMsg.classList.remove('hidden');
+        feedbackMsg.textContent = "Nome ou Capital incorretos. Tente novamente!";
+    }
+});
+</script>
 </body>
 </html>
