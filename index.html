@@ -261,7 +261,7 @@
     </main>
 
     <script>
-    // USA Data
+      // USA Data
     const usaRegionColors = { "Northeast": "#0ea5e9", "South": "#ef4444", "Midwest": "#14b8a6", "West": "#2563eb", "Territories": "#8b5cf6" };
     const stateData = {
         "01": { name: "Alabama", abbr: "AL", capital: "Montgomery", region: "South" },
@@ -306,7 +306,7 @@
         "45": { name: "South Carolina", abbr: "SC", capital: "Columbia", region: "South" },
         "46": { name: "South Dakota", abbr: "SD", capital: "Pierre", region: "Midwest" },
         "47": { name: "Tennessee", abbr: "TN", capital: "Nashville", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ten.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/nsh.png' class='h-12 object-contain drop-shadow-md'>" },
-        "48": { name: "Texas", abbr: "TX", capital: "Austin", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/dal.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/hou.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/dal.png' class='h-12 object-contain drop-shadow-md'>" },
+        "48": { name: "Texas", abbr: "TX", capital: "Austin", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/hou.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/dal.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/dal.png' class='h-12 object-contain drop-shadow-md'>" },
         "49": { name: "Utah", abbr: "UT", capital: "Salt Lake City", region: "West" },
         "50": { name: "Vermont", abbr: "VT", capital: "Montpelier", region: "Northeast" },
         "51": { name: "Virginia", abbr: "VA", capital: "Richmond", region: "South" },
@@ -636,28 +636,28 @@
                 activeDataMap = stateData;
                 activeAliases = usaAliases;
                 totalFeatures = Object.keys(stateData).length;
-                legendHtml = Object.entries(usaRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:v"></span>{k}</span>`).join('');
+                legendHtml = Object.entries(usaRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
                 renderUSA();
             } else if (currentRegion === 'canada') {
                 title = "Canada";
                 activeDataMap = provinceData;
                 activeAliases = {};
                 totalFeatures = Object.keys(provinceData).length;
-                legendHtml = Object.entries(canadaRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:v"></span>{k}</span>`).join('');
+                legendHtml = Object.entries(canadaRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
                 renderCanada();
             } else if (currentRegion === 'europe') {
                 title = "Europe";
                 activeDataMap = countryData;
                 activeAliases = euAliases;
                 totalFeatures = Object.keys(countryData).length;
-                legendHtml = Object.entries(euRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:v"></span>{k}</span>`).join('');
+                legendHtml = Object.entries(euRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
                 renderEurope();
             } else if (currentRegion === 'latam') {
                 title = "South & Central America";
                 activeDataMap = latamData;
                 activeAliases = latamAliases;
                 totalFeatures = Object.keys(latamData).length;
-                legendHtml = Object.entries(latamRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:v"></span>{k}</span>`).join('');
+                legendHtml = Object.entries(latamRegionColors).map(([k,v]) => `<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:${v}"></span>${k}</span>`).join('');
                 renderLatam();
             }
 
@@ -717,7 +717,7 @@
                         if (abbr === "AK") y -= 10;
                         if (abbr === "HI") x += 10;
                         if (isNaN(x) || isNaN(y)) return `translate(-1000,-1000)`;
-                        return `translate(x,{y})`;
+                        return `translate(${x},${y})`;
                     })
                     .attr("dy", ".35em")
                     .attr("data-id", d => d.id.padStart(2, '0'))
@@ -772,7 +772,7 @@
                         if (abbr === "PE") x += 5;
                         
                         if (isNaN(x) || isNaN(y)) return `translate(-1000,-1000)`;
-                        return `translate(x,{y})`;
+                        return `translate(${x},${y})`;
                     })
                     .attr("dy", ".35em")
                     .attr("data-id", d => getCanadaId(d))
@@ -854,7 +854,7 @@
                         const abbr = countryData[id].abbr;
                         let point = euCentroids[abbr] ? projection(euCentroids[abbr]) : path.centroid(d);
                         if (isNaN(point[0]) || isNaN(point[1])) return `translate(-1000,-1000)`;
-                        return `translate(point[0],{point[1]})`;
+                        return `translate(${point[0]},${point[1]})`;
                     })
                     .attr("dy", ".35em")
                     .attr("data-id", d => String(d.id).padStart(3, '0'))
@@ -870,7 +870,7 @@
                         const id = String(d.id).padStart(3, '0');
                         const abbr = countryData[id].abbr;
                         let point = euCentroids[abbr] ? projection(euCentroids[abbr]) : path.centroid(d);
-                        return `translate(point[0],{point[1]})`;
+                        return `translate(${point[0]},${point[1]})`;
                     })
                     .call(attachInteractions)
                     .call(g => {
@@ -947,7 +947,7 @@
                         }
 
                         if (isNaN(point[0]) || isNaN(point[1])) return `translate(-1000,-1000)`;
-                        return `translate(point[0],{point[1]})`;
+                        return `translate(${point[0]},${point[1]})`;
                     })
                     .attr("dy", ".35em")
                     .attr("data-id", d => String(d.id).padStart(3, '0'))
@@ -1237,5 +1237,3 @@
     </script>
 </body>
 </html>
-
-
