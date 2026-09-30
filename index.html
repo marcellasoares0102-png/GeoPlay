@@ -157,6 +157,92 @@
             filter: drop-shadow(0 0 12px rgba(255,255,255,0.4));
         }
 
+        /* Selected-region layout: flag | quiz | shape */
+        .selection-stage {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: minmax(150px, 210px) minmax(300px, 420px) minmax(150px, 210px);
+            gap: clamp(0.75rem, 2.5vw, 1.75rem);
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .selection-stage > * {
+            pointer-events: auto;
+        }
+
+        .selection-side-card {
+            width: 100%;
+            min-height: 320px;
+            height: auto;
+            align-self: stretch;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: opacity 300ms ease, transform 300ms ease;
+        }
+
+        .selection-side-card img {
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .selected-shape {
+            width: 100%;
+            height: 100%;
+            max-height: none;
+        }
+
+        @media (max-width: 900px) {
+            .selection-stage {
+                grid-template-columns: 130px minmax(260px, 1fr) 130px;
+                gap: 0.75rem;
+                padding: 1rem;
+            }
+
+            .selection-side-card {
+                min-height: 280px;
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .selection-stage {
+                overflow-y: auto;
+                grid-template-columns: minmax(0, 1fr);
+                align-content: center;
+                justify-items: center;
+                padding: 1rem;
+            }
+
+            .selection-stage > * {
+                width: min(100%, 420px);
+                min-height: 190px;
+            }
+
+            .selection-stage #form-card {
+                order: 1;
+            }
+
+            .selection-stage #selected-flag-card {
+                order: 0;
+                height: 180px;
+            }
+
+            .selection-stage #selected-shape-card {
+                order: 2;
+                height: 180px;
+            }
+        }
+
         /* Transitions */
         .fade-enter { opacity: 0; transform: translateY(10px); }
         .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
@@ -213,49 +299,65 @@
                 <div id="tooltip" class="tooltip liquid-glass border border-white/10"></div>
                 <!-- D3 Map injected here -->
                 
-                <div id="form-card" class="absolute top-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md liquid-glass p-6 rounded-2xl hidden opacity-0 transition-all duration-300 transform scale-95 shadow-2xl border-t border-l border-white/20 z-50">
-                    
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center border border-white/20 overflow-hidden shrink-0 shadow-inner relative">
-                                <img id="selected-flag" src="" alt="Flag" class="w-full h-full object-cover hidden absolute inset-0">
-                                <span id="selected-abbr" class="text-sm font-bold text-slate-300"></span>
-                            </div>
+                <div id="selection-stage" class="selection-stage">
+
+                    <!-- Selected region flag -->
+                    <div id="selected-flag-card" class="selection-side-card liquid-glass rounded-2xl hidden opacity-0 transform scale-95">
+                        <img id="selected-flag" src="" alt="Flag" class="max-w-[82%] max-h-[70%] object-contain drop-shadow-xl">
+                        <span id="selected-abbr" class="text-sm font-bold text-slate-300"></span>
+                    </div>
+
+                    <!-- Main quiz card -->
+                    <div id="form-card" class="w-full max-w-md liquid-glass p-6 rounded-2xl hidden opacity-0 transition-all duration-300 transform scale-95 shadow-2xl border-t border-l border-white/20">
+                        <div class="flex justify-between items-start mb-5">
                             <div>
                                 <h3 class="text-lg font-bold text-white leading-tight">Identify Region</h3>
                                 <p class="text-xs text-slate-400">Enter name and capital.</p>
                             </div>
+                            <button onclick="closeForm()" class="text-slate-400 hover:text-white p-1 transition-colors" aria-label="Close">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
                         </div>
-                        <button onclick="closeForm()" class="text-slate-400 hover:text-white p-1 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
+
+                        <form id="quiz-form" class="space-y-4">
+                            <input type="hidden" id="current-id">
+
+                            <div class="space-y-3">
+                                <div>
+                                    <input type="text" id="name-input" class="w-full px-4 py-2.5 rounded-lg liquid-glass-input text-sm"
+                                        placeholder="Name (e.g. California, France)" required autocomplete="off">
+                                </div>
+                                <div>
+                                    <input type="text" id="capital-input" class="w-full px-4 py-2.5 rounded-lg liquid-glass-input text-sm"
+                                        placeholder="Capital City" required autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div id="hint-container" class="mt-2 hidden">
+                                <div id="region-hint" class="flex flex-wrap gap-4 justify-center items-center bg-white/5 p-3 rounded-xl border border-white/10"></div>
+                            </div>
+
+                            <div id="feedback-message" class="text-sm font-semibold text-center hidden py-2 rounded-lg">
+                                Try again!
+                            </div>
+
+                            <button type="submit" class="w-full bg-white text-slate-900 hover:bg-slate-200 font-bold py-2.5 rounded-lg shadow-lg transition-all active:scale-[0.98]">
+                                Confirm
+                            </button>
+                        </form>
                     </div>
 
-                    <form id="quiz-form" class="space-y-4">
-                        <input type="hidden" id="current-id">
-                        
-                        <div class="space-y-3">
-                            <div>
-                                <input type="text" id="name-input" class="w-full px-4 py-2.5 rounded-lg liquid-glass-input text-sm" placeholder="Name (e.g. California, France)" required autocomplete="off">
-                            </div>
-                            <div>
-                                <input type="text" id="capital-input" class="w-full px-4 py-2.5 rounded-lg liquid-glass-input text-sm" placeholder="Capital City" required autocomplete="off">
-                            </div>
-                        </div>
+                    <!-- Selected region outline -->
+                    <div id="selected-shape-card" class="selection-side-card liquid-glass rounded-2xl hidden opacity-0 transform scale-95">
+                        <svg id="selected-shape" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+                            aria-label="Selected region outline"></svg>
+                    </div>
 
-                        <div id="hint-container" class="mt-2 hidden">
-                            <div id="region-hint" class="flex gap-4 justify-center items-center bg-white/5 p-3 rounded-xl border border-white/10"></div>
-                        </div>
-
-                        <div id="feedback-message" class="text-sm font-semibold text-center hidden py-2 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30">
-                            Try again!
-                        </div>
-
-                        <button type="submit" class="w-full bg-white text-slate-900 hover:bg-slate-200 font-bold py-2.5 rounded-lg shadow-lg transition-all active:scale-[0.98]">
-                            Confirm
-                        </button>
-                    </form>
-                </div>
+                </div>                </div>
             </div>
         </div>
     </main>
@@ -266,53 +368,53 @@
     const stateData = {
         "01": { name: "Alabama", abbr: "AL", capital: "Montgomery", region: "South" },
         "02": { name: "Alaska", abbr: "AK", capital: "Juneau", region: "West" },
-        "04": { name: "Arizona", abbr: "AZ", capital: "Phoenix", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ari.png' class='h-12 object-contain drop-shadow-md'>" },
+        "04": { name: "Arizona", abbr: "AZ", capital: "Phoenix", region: "West", teams: ["nfl/ari"] },
         "05": { name: "Arkansas", abbr: "AR", capital: "Little Rock", region: "South" },
-        "06": { name: "California", abbr: "CA", capital: "Sacramento", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/sf.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/lar.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/lac.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/sj.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/la.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/ana.png' class='h-12 object-contain drop-shadow-md'>" },
-        "08": { name: "Colorado", abbr: "CO", capital: "Denver", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/den.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/col.png' class='h-12 object-contain drop-shadow-md'>" },
+        "06": { name: "California", abbr: "CA", capital: "Sacramento", region: "West", teams: ["nfl/sf", "nfl/lar", "nfl/lac", "nhl/sj", "nhl/la", "nhl/ana"] },
+        "08": { name: "Colorado", abbr: "CO", capital: "Denver", region: "West", teams: ["nfl/den", "nhl/col"] },
         "09": { name: "Connecticut", abbr: "CT", capital: "Hartford", region: "Northeast" },
         "10": { name: "Delaware", abbr: "DE", capital: "Dover", region: "South" },
-        "12": { name: "Florida", abbr: "FL", capital: "Tallahassee", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/mia.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/tb.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/jax.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/tb.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/fla.png' class='h-12 object-contain drop-shadow-md'>" },
-        "13": { name: "Georgia", abbr: "GA", capital: "Atlanta", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/atl.png' class='h-12 object-contain drop-shadow-md'>" },
+        "12": { name: "Florida", abbr: "FL", capital: "Tallahassee", region: "South", teams: ["nfl/mia", "nfl/tb", "nfl/jax", "nhl/tb", "nhl/fla"] },
+        "13": { name: "Georgia", abbr: "GA", capital: "Atlanta", region: "South", teams: ["nfl/atl"] },
         "15": { name: "Hawaii", abbr: "HI", capital: "Honolulu", region: "West" },
         "16": { name: "Idaho", abbr: "ID", capital: "Boise", region: "West" },
-        "17": { name: "Illinois", abbr: "IL", capital: "Springfield", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/chi.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/chi.png' class='h-12 object-contain drop-shadow-md'>" },
-        "18": { name: "Indiana", abbr: "IN", capital: "Indianapolis", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ind.png' class='h-12 object-contain drop-shadow-md'>" },
+        "17": { name: "Illinois", abbr: "IL", capital: "Springfield", region: "Midwest", teams: ["nfl/chi", "nhl/chi"] },
+        "18": { name: "Indiana", abbr: "IN", capital: "Indianapolis", region: "Midwest", teams: ["nfl/ind"] },
         "19": { name: "Iowa", abbr: "IA", capital: "Des Moines", region: "Midwest" },
         "20": { name: "Kansas", abbr: "KS", capital: "Topeka", region: "Midwest" },
         "21": { name: "Kentucky", abbr: "KY", capital: "Frankfort", region: "South" },
-        "22": { name: "Louisiana", abbr: "LA", capital: "Baton Rouge", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/no.png' class='h-12 object-contain drop-shadow-md'>" },
+        "22": { name: "Louisiana", abbr: "LA", capital: "Baton Rouge", region: "South", teams: ["nfl/no"] },
         "23": { name: "Maine", abbr: "ME", capital: "Augusta", region: "Northeast" },
-        "24": { name: "Maryland", abbr: "MD", capital: "Annapolis", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/bal.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png' class='h-12 object-contain drop-shadow-md'>" },
-        "25": { name: "Massachusetts", abbr: "MA", capital: "Boston", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ne.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/bos.png' class='h-12 object-contain drop-shadow-md'>" },
-        "26": { name: "Michigan", abbr: "MI", capital: "Lansing", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/det.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/det.png' class='h-12 object-contain drop-shadow-md'>" },
-        "27": { name: "Minnesota", abbr: "MN", capital: "St. Paul", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/min.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/min.png' class='h-12 object-contain drop-shadow-md'>" },
+        "24": { name: "Maryland", abbr: "MD", capital: "Annapolis", region: "South", teams: ["nfl/bal", "nfl/wsh"] },
+        "25": { name: "Massachusetts", abbr: "MA", capital: "Boston", region: "Northeast", teams: ["nfl/ne", "nhl/bos"] },
+        "26": { name: "Michigan", abbr: "MI", capital: "Lansing", region: "Midwest", teams: ["nfl/det", "nhl/det"] },
+        "27": { name: "Minnesota", abbr: "MN", capital: "St. Paul", region: "Midwest", teams: ["nfl/min", "nhl/min"] },
         "28": { name: "Mississippi", abbr: "MS", capital: "Jackson", region: "South" },
-        "29": { name: "Missouri", abbr: "MO", capital: "Jefferson City", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/kc.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/stl.png' class='h-12 object-contain drop-shadow-md'>" },
+        "29": { name: "Missouri", abbr: "MO", capital: "Jefferson City", region: "Midwest", teams: ["nfl/kc", "nhl/stl"] },
         "30": { name: "Montana", abbr: "MT", capital: "Helena", region: "West" },
         "31": { name: "Nebraska", abbr: "NE", capital: "Lincoln", region: "Midwest" },
-        "32": { name: "Nevada", abbr: "NV", capital: "Carson City", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/lv.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/vgk.png' class='h-12 object-contain drop-shadow-md'>" },
+        "32": { name: "Nevada", abbr: "NV", capital: "Carson City", region: "West", teams: ["nfl/lv", "nhl/vgk"] },
         "33": { name: "New Hampshire", abbr: "NH", capital: "Concord", region: "Northeast" },
-        "34": { name: "New Jersey", abbr: "NJ", capital: "Trenton", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/nj.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/nyg.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/nyj.png' class='h-12 object-contain drop-shadow-md'>" },
+        "34": { name: "New Jersey", abbr: "NJ", capital: "Trenton", region: "Northeast", teams: ["nhl/nj", "nfl/nyg", "nfl/nyj"] },
         "35": { name: "New Mexico", abbr: "NM", capital: "Santa Fe", region: "West" },
-        "36": { name: "New York", abbr: "NY", capital: "Albany", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/buf.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/buf.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/nyr.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/nyi.png' class='h-12 object-contain drop-shadow-md'>" },
-        "37": { name: "North Carolina", abbr: "NC", capital: "Raleigh", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/car.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/car.png' class='h-12 object-contain drop-shadow-md'>" },
+        "36": { name: "New York", abbr: "NY", capital: "Albany", region: "Northeast", teams: ["nfl/buf", "nhl/buf", "nhl/nyr", "nhl/nyi"] },
+        "37": { name: "North Carolina", abbr: "NC", capital: "Raleigh", region: "South", teams: ["nfl/car", "nhl/car"] },
         "38": { name: "North Dakota", abbr: "ND", capital: "Bismarck", region: "Midwest" },
-        "39": { name: "Ohio", abbr: "OH", capital: "Columbus", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/cle.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/cin.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/cbj.png' class='h-12 object-contain drop-shadow-md'>" },
+        "39": { name: "Ohio", abbr: "OH", capital: "Columbus", region: "Midwest", teams: ["nfl/cle", "nfl/cin", "nhl/cbj"] },
         "40": { name: "Oklahoma", abbr: "OK", capital: "Oklahoma City", region: "South" },
         "41": { name: "Oregon", abbr: "OR", capital: "Salem", region: "West" },
-        "42": { name: "Pennsylvania", abbr: "PA", capital: "Harrisburg", region: "Northeast", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/phi.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/pit.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/phi.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/pit.png' class='h-12 object-contain drop-shadow-md'>" },
+        "42": { name: "Pennsylvania", abbr: "PA", capital: "Harrisburg", region: "Northeast", teams: ["nfl/phi", "nfl/pit", "nhl/phi", "nhl/pit"] },
         "44": { name: "Rhode Island", abbr: "RI", capital: "Providence", region: "Northeast" },
         "45": { name: "South Carolina", abbr: "SC", capital: "Columbia", region: "South" },
         "46": { name: "South Dakota", abbr: "SD", capital: "Pierre", region: "Midwest" },
-        "47": { name: "Tennessee", abbr: "TN", capital: "Nashville", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/ten.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/nsh.png' class='h-12 object-contain drop-shadow-md'>" },
-        "48": { name: "Texas", abbr: "TX", capital: "Austin", region: "South", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/hou.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nfl/500/dal.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/dal.png' class='h-12 object-contain drop-shadow-md'>" },
-        "49": { name: "Utah", abbr: "UT", capital: "Salt Lake City", region: "West" },
+        "47": { name: "Tennessee", abbr: "TN", capital: "Nashville", region: "South", teams: ["nfl/ten", "nhl/nsh"] },
+        "48": { name: "Texas", abbr: "TX", capital: "Austin", region: "South", teams: ["nfl/hou", "nfl/dal", "nhl/dal"] },
+        "49": { name: "Utah", abbr: "UT", capital: "Salt Lake City", region: "West", teams: ["nhl/uta"] },
         "50": { name: "Vermont", abbr: "VT", capital: "Montpelier", region: "Northeast" },
         "51": { name: "Virginia", abbr: "VA", capital: "Richmond", region: "South" },
-        "53": { name: "Washington", abbr: "WA", capital: "Olympia", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/sea.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/sea.png' class='h-12 object-contain drop-shadow-md'>" },
+        "53": { name: "Washington", abbr: "WA", capital: "Olympia", region: "West", teams: ["nfl/sea", "nhl/sea"] },
         "54": { name: "West Virginia", abbr: "WV", capital: "Charleston", region: "South" },
-        "55": { name: "Wisconsin", abbr: "WI", capital: "Madison", region: "Midwest", hint: "<img src='https://a.espncdn.com/i/teamlogos/nfl/500/gb.png' class='h-12 object-contain drop-shadow-md'>" },
+        "55": { name: "Wisconsin", abbr: "WI", capital: "Madison", region: "Midwest", teams: ["nfl/gb"] },
         "56": { name: "Wyoming", abbr: "WY", capital: "Cheyenne", region: "West" }
     };
         
@@ -323,15 +425,15 @@
         // Canada Data
         const canadaRegionColors = { "West": "#2563eb", "Prairies": "#14b8a6", "Central": "#ef4444", "Atlantic": "#0ea5e9", "Northern": "#8b5cf6" };
         const provinceData = {
-            "Alberta": { abbr: "AB", capital: "Edmonton", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/edm.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/cgy.png' class='h-12 object-contain drop-shadow-md'>" },
-            "British Columbia": { abbr: "BC", capital: "Victoria", region: "West", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/van.png' class='h-12 object-contain drop-shadow-md'>" },
-            "Manitoba": { abbr: "MB", capital: "Winnipeg", region: "Prairies", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/wpg.png' class='h-12 object-contain drop-shadow-md'>" },
+            "Alberta": { abbr: "AB", capital: "Edmonton", region: "West", teams: ["nhl/edm", "nhl/cgy"] },
+            "British Columbia": { abbr: "BC", capital: "Victoria", region: "West", teams: ["nhl/van"] },
+            "Manitoba": { abbr: "MB", capital: "Winnipeg", region: "Prairies", teams: ["nhl/wpg"] },
             "New Brunswick": { abbr: "NB", capital: "Fredericton", region: "Atlantic" },
             "Newfoundland and Labrador": { abbr: "NL", capital: "St. John's", region: "Atlantic" },
             "Nova Scotia": { abbr: "NS", capital: "Halifax", region: "Atlantic" },
-            "Ontario": { abbr: "ON", capital: "Toronto", region: "Central", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/tor.png' class='h-12 object-contain drop-shadow-md'><img src='https://a.espncdn.com/i/teamlogos/nhl/500/ott.png' class='h-12 object-contain drop-shadow-md'>" },
+            "Ontario": { abbr: "ON", capital: "Toronto", region: "Central", teams: ["nhl/tor", "nhl/ott"] },
             "Prince Edward Island": { abbr: "PE", capital: "Charlottetown", region: "Atlantic" },
-            "Quebec": { abbr: "QC", capital: "Quebec City", region: "Central", hint: "<img src='https://a.espncdn.com/i/teamlogos/nhl/500/mtl.png' class='h-12 object-contain drop-shadow-md'>" },
+            "Quebec": { abbr: "QC", capital: "Quebec City", region: "Central", teams: ["nhl/mtl"] },
             "Saskatchewan": { abbr: "SK", capital: "Regina", region: "Prairies" },
             "Northwest Territories": { abbr: "NT", capital: "Yellowknife", region: "Northern" },
             "Nunavut": { abbr: "NU", capital: "Iqaluit", region: "Northern" },
@@ -343,6 +445,78 @@
             if (name === "Newfoundland") return "Newfoundland and Labrador";
             if (name === "Yukon Territory") return "Yukon";
             return name;
+        }
+
+        // Sports hints are stored directly on the selected region.
+        // This keeps each NFL/NHL logo permanently tied to its state/province.
+        function renderTeamHints(teams) {
+            const hintContainer = document.getElementById('hint-container');
+            const regionHint = document.getElementById('region-hint');
+
+            // Always clear the previous selection before rendering a new one.
+            regionHint.innerHTML = '';
+            hintContainer.classList.add('hidden');
+
+            if (!Array.isArray(teams) || teams.length === 0) return;
+
+            teams.forEach(team => {
+                const [league, code] = team.split('/');
+                if (!league || !code || !['nfl', 'nhl'].includes(league)) return;
+
+                const img = document.createElement('img');
+                img.src = `https://a.espncdn.com/i/teamlogos/${league}/500/${code}.png`;
+                img.alt = '';
+                img.className = 'h-12 w-12 object-contain drop-shadow-md';
+                img.draggable = false;
+                regionHint.appendChild(img);
+            });
+
+            if (regionHint.children.length > 0) {
+                hintContainer.classList.remove('hidden');
+            }
+        }
+
+        // Projected map paths for the selected place, used in the right-hand outline card.
+        let selectedShapePathData = {};
+
+        function getActiveRegionColor(info) {
+            if (!info) return "rgba(255,255,255,0.18)";
+            if (currentRegion === 'usa') return usaRegionColors[info.region] || "#f8fafc";
+            if (currentRegion === 'canada') return canadaRegionColors[info.region] || "#f8fafc";
+            if (currentRegion === 'europe') return euRegionColors[info.region] || "#f8fafc";
+            if (currentRegion === 'latam') return latamRegionColors[info.region] || "#f8fafc";
+            return "#f8fafc";
+        }
+
+        function renderSelectedShape(id, info) {
+            const shapeSvg = d3.select("#selected-shape");
+            shapeSvg.selectAll("*").remove();
+
+            const pathData = selectedShapePathData[id];
+            if (!pathData) {
+                shapeSvg.attr("viewBox", "0 0 100 100");
+                return;
+            }
+
+            const pathEl = shapeSvg.append("path")
+                .attr("d", pathData)
+                .attr("fill", getActiveRegionColor(info))
+                .attr("fill-opacity", 0.82)
+                .attr("stroke", "rgba(255,255,255,0.85)")
+                .attr("stroke-width", 1.5)
+                .attr("stroke-linejoin", "round");
+
+            const node = pathEl.node();
+            if (!node) return;
+
+            const bbox = node.getBBox();
+            const size = Math.max(bbox.width, bbox.height);
+            const padding = Math.max(size * 0.12, 4);
+
+            shapeSvg.attr(
+                "viewBox",
+                `${bbox.x - padding} ${bbox.y - padding} ${Math.max(bbox.width + padding * 2, 20)} ${Math.max(bbox.height + padding * 2, 20)}`
+            );
         }
 
         // Europe Data
@@ -446,13 +620,7 @@
             "044": { name: "Bahamas", abbr: "BS", capital: "Nassau", region: "Central America" }
         };
 
-        const latamAliases = {
-            "320": ["guatemala"],
-            "214": ["republica dominicana", "dominican republic"],
-            "484": ["mexico"],
-            "591": ["panama"],
-            "170": ["colombia"]
-        };
+        const latamAliases = {};
 
         // IDs for the globe interaction
         const usaGlobeId = "840";
@@ -468,6 +636,7 @@
         let totalFeatures = 0;
         let answeredSet = new Set();
         let activeFeature = null;
+        let formHideTimer = null;
 
         const homeView = document.getElementById('home-view');
         const quizView = document.getElementById('quiz-view');
@@ -626,7 +795,8 @@
 
         function setupQuizRegion() {
             // Remove previous map
-            d3.select("#map-container").selectAll("svg").remove();
+            d3.select("#map-container").selectAll("svg:not(#selected-shape)").remove();
+            selectedShapePathData = {};
             
             let title = "";
             let legendHtml = "";
@@ -681,6 +851,10 @@
                     .attr("class", "map-feature")
                     .attr("data-id", d => d.id.padStart(2, '0'))
                     .attr("d", path)
+                    .each(d => {
+                        const id = d.id.padStart(2, '0');
+                        if (stateData[id]) selectedShapePathData[id] = path(d);
+                    })
                     .attr("fill", d => {
                         const id = d.id.padStart(2, '0');
                         return stateData[id] ? usaRegionColors[stateData[id].region] : "rgba(255,255,255,0.1)";
@@ -743,6 +917,10 @@
                     .attr("class", "map-feature")
                     .attr("data-id", d => getCanadaId(d))
                     .attr("d", path)
+                    .each(d => {
+                        const id = getCanadaId(d);
+                        if (provinceData[id]) selectedShapePathData[id] = path(d);
+                    })
                     .attr("fill", d => {
                         let name = getCanadaId(d);
                         return provinceData[name] ? canadaRegionColors[provinceData[name].region] : "rgba(255,255,255,0.1)";
@@ -823,6 +1001,10 @@
                         return countryData[id] ? "map-feature" : "non-interactive";
                     })
                     .attr("d", path)
+                    .each(d => {
+                        const id = String(d.id).padStart(3, '0');
+                        if (countryData[id]) selectedShapePathData[id] = path(d);
+                    })
                     .attr("fill", d => {
                         const id = String(d.id).padStart(3, '0');
                         return countryData[id] ? euRegionColors[countryData[id].region] : "rgba(255,255,255,0.05)";
@@ -872,6 +1054,10 @@
                         let point = euCentroids[abbr] ? projection(euCentroids[abbr]) : path.centroid(d);
                         return `translate(${point[0]},${point[1]})`;
                     })
+                    .each(d => {
+                        const id = String(d.id).padStart(3, '0');
+                        if (countryData[id]) selectedShapePathData[id] = path(d);
+                    })
                     .call(attachInteractions)
                     .call(g => {
                         const visual = g.append("g").attr("class", "pin-visual");
@@ -907,6 +1093,10 @@
                         return latamData[id] ? "map-feature" : "non-interactive";
                     })
                     .attr("d", path)
+                    .each(d => {
+                        const id = String(d.id).padStart(3, '0');
+                        if (countryData[id]) selectedShapePathData[id] = path(d);
+                    })
                     .attr("fill", d => {
                         const id = String(d.id).padStart(3, '0');
                         return latamData[id] ? latamRegionColors[latamData[id].region] : "rgba(255,255,255,0.05)";
@@ -1042,19 +1232,25 @@
 
         function openForm(id, info) {
             document.getElementById('current-id').value = id;
-            
+
+            // Cancel any pending hide from the previous card.
+            if (formHideTimer) {
+                clearTimeout(formHideTimer);
+                formHideTimer = null;
+            }
+
             let flagUrl = "";
             if (currentRegion === 'usa') {
-                flagUrl = `https://flagcdn.com/w80/us-${info.abbr.toLowerCase()}.png`;
+                flagUrl = `https://flagcdn.com/w320/us-${info.abbr.toLowerCase()}.png`;
             } else if (currentRegion === 'europe') {
                 let code = info.abbr.toLowerCase();
                 if (code === 'eng') code = 'gb-eng';
                 else if (code === 'sct') code = 'gb-sct';
                 else if (code === 'wls') code = 'gb-wls';
                 else if (code === 'nir') code = 'gb-nir';
-                flagUrl = `https://flagcdn.com/w80/${code}.png`;
+                flagUrl = `https://flagcdn.com/w320/${code}.png`;
             } else if (currentRegion === 'latam') {
-                flagUrl = `https://flagcdn.com/w80/${info.abbr.toLowerCase()}.png`;
+                flagUrl = `https://flagcdn.com/w320/${info.abbr.toLowerCase()}.png`;
             } else if (currentRegion === 'canada') {
                 const caFlags = {
                     "AB": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Flag_of_Alberta.svg",
@@ -1082,31 +1278,41 @@
                 flagImg.classList.remove('hidden');
                 abbrSpan.classList.add('hidden');
             } else {
+                flagImg.src = "";
                 flagImg.classList.add('hidden');
                 abbrSpan.classList.remove('hidden');
                 abbrSpan.textContent = info.abbr;
             }
-            
-            // Handle Sports Hints
-            const hintContainer = document.getElementById('hint-container');
-            const regionHint = document.getElementById('region-hint');
-            if (info.hint) {
-                regionHint.innerHTML = info.hint;
-                hintContainer.classList.remove('hidden');
-            } else {
-                hintContainer.classList.add('hidden');
-            }
-            
+
+            // Sports hints come only from the selected state's/province's data.
+            renderTeamHints(info.teams);
+
+            // Show the corresponding geographic silhouette.
+            renderSelectedShape(id, info);
+
             const form = document.getElementById('quiz-form');
             form.reset();
+
             const feedbackMsg = document.getElementById('feedback-message');
+            feedbackMsg.textContent = "Try again!";
             feedbackMsg.className = "text-sm font-semibold text-center hidden py-2 rounded-lg";
-            
+
+            const flagCard = document.getElementById('selected-flag-card');
+            const shapeCard = document.getElementById('selected-shape-card');
+
+            flagCard.classList.remove('hidden');
+            shapeCard.classList.remove('hidden');
             formCard.classList.remove('hidden');
-            // Small delay to allow block render before transition
+
             setTimeout(() => {
+                flagCard.classList.remove('opacity-0', 'scale-95');
+                flagCard.classList.add('opacity-100', 'scale-100');
+
                 formCard.classList.remove('opacity-0', 'scale-95');
                 formCard.classList.add('opacity-100', 'scale-100');
+
+                shapeCard.classList.remove('opacity-0', 'scale-95');
+                shapeCard.classList.add('opacity-100', 'scale-100');
             }, 10);
 
             document.getElementById('name-input').focus();
@@ -1115,11 +1321,25 @@
         function closeForm() {
             d3.selectAll(".map-feature.active").classed("active", false);
             activeFeature = null;
-            
+
+            const flagCard = document.getElementById('selected-flag-card');
+            const shapeCard = document.getElementById('selected-shape-card');
+
+            flagCard.classList.remove('opacity-100', 'scale-100');
+            shapeCard.classList.remove('opacity-100', 'scale-100');
             formCard.classList.remove('opacity-100', 'scale-100');
+
+            flagCard.classList.add('opacity-0', 'scale-95');
+            shapeCard.classList.add('opacity-0', 'scale-95');
             formCard.classList.add('opacity-0', 'scale-95');
-            setTimeout(() => {
+
+            if (formHideTimer) clearTimeout(formHideTimer);
+            formHideTimer = setTimeout(() => {
+                flagCard.classList.add('hidden');
+                shapeCard.classList.add('hidden');
                 formCard.classList.add('hidden');
+                d3.select("#selected-shape").selectAll("*").remove();
+                formHideTimer = null;
             }, 300);
         }
 
@@ -1200,19 +1420,19 @@
                 let msg = "Try again!";
                 
                 if (nameTypo && capTypo) {
-                    msg = `Almost! It's ${realNameStr} and ${realCapitalStr}.`;
+                    msg = `Almost! The correct answers are ${realNameStr} and ${realCapitalStr}.`;
                     isTypo = true;
                 } else if (nameTypo && capitalCorrect) {
-                    msg = `Capital correct! Almost on name, it's ${realNameStr}.`;
+                    msg = `Almost! The correct name is ${realNameStr}.`;
                     isTypo = true;
                 } else if (nameCorrect && capTypo) {
-                    msg = `Name correct! Almost on capital, it's ${realCapitalStr}.`;
+                    msg = `Almost! The correct capital is ${realCapitalStr}.`;
                     isTypo = true;
                 } else if (nameTypo) {
-                    msg = `Almost on name! It's ${realNameStr}. Try again for capital.`;
+                    msg = `Almost! The correct name is ${realNameStr}.`;
                     isTypo = true;
                 } else if (capTypo) {
-                    msg = `Almost on capital! It's ${realCapitalStr}. Try again for name.`;
+                    msg = `Almost! The correct capital is ${realCapitalStr}.`;
                     isTypo = true;
                 }
 
