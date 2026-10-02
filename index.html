@@ -1095,7 +1095,7 @@
                     .attr("d", path)
                     .each(d => {
                         const id = String(d.id).padStart(3, '0');
-                        if (countryData[id]) selectedShapePathData[id] = path(d);
+                        if (latamData[id]) selectedShapePathData[id] = path(d);
                     })
                     .attr("fill", d => {
                         const id = String(d.id).padStart(3, '0');
