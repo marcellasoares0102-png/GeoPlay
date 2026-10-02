@@ -1287,9 +1287,6 @@
             // Sports hints come only from the selected state's/province's data.
             renderTeamHints(info.teams);
 
-            // Show the corresponding geographic silhouette.
-            renderSelectedShape(id, info);
-
             const form = document.getElementById('quiz-form');
             form.reset();
 
@@ -1313,6 +1310,9 @@
 
                 shapeCard.classList.remove('opacity-0', 'scale-95');
                 shapeCard.classList.add('opacity-100', 'scale-100');
+
+                // Render only after the shape card is visible. getBBox() needs a rendered SVG.
+                requestAnimationFrame(() => renderSelectedShape(id, info));
             }, 10);
 
             document.getElementById('name-input').focus();
